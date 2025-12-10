@@ -6,7 +6,7 @@
     <title>Chat App</title>
     <style>
         /* --- CSS STYLES --- */
-        * { box-sizing: border-box; margin: 10; padding: 10; font-family: sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
         body { background-color: #f0f2f5; height: 100vh; display: flex; overflow: hidden; }
 
         /* Login Screen */
@@ -17,15 +17,11 @@
 
         /* Sidebar (Users) */
         #sidebar { width: 300px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; height: 100%; z-index: 10; }
-
-        /* Profile & Status */
+        
         .profile-section { padding: 15px; background: #f0f2f5; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
         .my-info { font-weight: bold; color: #0084ff; font-size: 16px; }
         .logout-btn { background: #ff3b30; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; }
-
         .connection-status { font-size: 10px; color: green; padding: 0 15px; margin-bottom: 5px; }
-
-        /* Online Users Header */
         .section-title { padding: 15px; font-weight: bold; color: #555; background: #fff; border-bottom: 1px solid #eee; }
 
         #user-list { list-style: none; flex: 1; overflow-y: auto; }
@@ -40,16 +36,16 @@
         #chat-area { flex: 1; display: flex; flex-direction: column; background: #fff; position: relative; height: 100%; }
         #empty-state { flex: 1; display: flex; justify-content: center; align-items: center; color: #888; background: #f0f2f5; }
         #chat-container { display: none; flex-direction: column; height: 100%; width: 100%; }
-
+        
         .chat-header { padding: 10px 15px; background: white; border-bottom: 1px solid #ddd; display: flex; align-items: center; height: 60px; flex-shrink: 0; }
         .back-btn { margin-right: 10px; display: none; background: none; border: none; font-size: 20px; cursor: pointer; }
 
         #messages-list { flex: 1; padding: 15px; overflow-y: auto; background: #eef1f5; display: flex; flex-direction: column; gap: 10px; }
-
+        
         .message-row { display: flex; width: 100%; }
         .message-row.sent { justify-content: flex-end; }
         .message-row.received { justify-content: flex-start; }
-
+        
         .bubble { max-width: 70%; padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.4; position: relative; word-wrap: break-word; }
         .sent .bubble { background-color: #0084ff; color: white; border-bottom-right-radius: 4px; }
         .received .bubble { background-color: white; color: black; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
@@ -78,9 +74,9 @@
 
     <div id="login-screen">
         <div class="login-box">
-            <h2>Chat Private</h2>
+            <h2>Welcome Chat</h2>
             <input type="text" id="username" placeholder="Enter Nickname" autocomplete="off">
-            <button onclick="handleLogin()">Enter Chat</button>
+            <button onclick="handleLogin()">Login</button>
         </div>
     </div>
 
@@ -90,9 +86,7 @@
             <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
         <div id="conn-status" class="connection-status">Connecting...</div>
-
         <div class="section-title">Online Users</div>
-
         <ul id="user-list"></ul>
     </div>
 
@@ -125,50 +119,73 @@
         const socket = io();
         let myName = "";
         let activeChatUser = null;
-        let conversations = {};
+        let conversations = {}; // In-memory
         let unreadCounts = {};
 
-        // --- IMPORTANT: Handle Connection & Reconnection ---
+        // --- 1. History Management (LocalStorage) ---
+        function saveHistory() {
+            if (myName) {
+                // Save conversations to browser storage
+                localStorage.setItem('chat_history_' + myName, JSON.stringify(conversations));
+            }
+        }
 
-        // Socket ချိတ်မိပြီဆိုတာနဲ့ Login ချက်ချင်းဝင်မယ်
+        function loadHistory() {
+            if (myName) {
+                const savedData = localStorage.getItem('chat_history_' + myName);
+                if (savedData) {
+                    conversations = JSON.parse(savedData);
+                }
+            }
+        }
+
+        // --- 2. Login & Connection ---
+        window.onload = function() {
+            const savedName = localStorage.getItem('chat_nickname');
+            if (savedName) {
+                startChat(savedName);
+            }
+        };
+
         socket.on('connect', () => {
             document.getElementById('conn-status').innerText = "🟢 Online";
             document.getElementById('conn-status').style.color = "green";
-
-            // အကယ်၍ Browser မှာ နာမည်မှတ်ထားပြီးသားဆိုရင် Server ကို ချက်ချင်းပြန်ပြောမယ်
             const savedName = localStorage.getItem('chat_nickname');
             if(savedName) {
-                myName = savedName;
-                socket.emit('login', myName); 
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('my-display-name').innerText = "👤 " + myName;
+                socket.emit('login', savedName); 
             }
         });
 
         socket.on('disconnect', () => {
-            document.getElementById('conn-status').innerText = "🔴 Offline (Reconnecting...)";
+            document.getElementById('conn-status').innerText = "🔴 Offline";
             document.getElementById('conn-status').style.color = "red";
         });
 
-        // --- Login Logic ---
         function handleLogin() {
             const input = document.getElementById('username');
             const name = input.value.trim();
             if (name) {
                 localStorage.setItem('chat_nickname', name);
-                myName = name;
-                socket.emit('login', myName);
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('my-display-name').innerText = "👤 " + myName;
+                startChat(name);
             }
         }
 
+        function startChat(name) {
+            myName = name;
+            loadHistory(); // Load old messages
+            socket.emit('login', myName);
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('my-display-name').innerText = "👤 " + myName;
+        }
+
         function logout() {
+            // Clear everything on logout
             localStorage.removeItem('chat_nickname');
+            localStorage.removeItem('chat_history_' + myName);
             location.reload();
         }
 
-        // --- Core Logic ---
+        // --- 3. Users & Chat Logic ---
         socket.on('update user list', (users) => {
             const list = document.getElementById('user-list');
             list.innerHTML = "";
@@ -224,13 +241,10 @@
         function sendImage() {
             const fileInput = document.getElementById('file-input');
             const file = fileInput.files[0];
-
-            // Check Size (Prevent Lag)
-            if (file.size > 5 * 1024 * 1024) { // 5MB ထက်များရင်
-                alert("Please select an image smaller than 5MB to prevent lag.");
+            if (file.size > 5 * 1024 * 1024) { 
+                alert("Please select an image smaller than 5MB.");
                 return;
             }
-
             if (file && activeChatUser) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -250,7 +264,9 @@
 
             const partner = data.from === "Me" ? data.toUser : data.from;
             if (!conversations[partner]) conversations[partner] = [];
+            
             conversations[partner].push(data);
+            saveHistory(); // Save to local storage immediately
 
             if (activeChatUser === partner) {
                 renderMessages();
@@ -272,7 +288,7 @@
             chats.forEach(chat => {
                 const div = document.createElement('div');
                 div.className = `message-row ${chat.from === "Me" ? 'sent' : 'received'}`;
-
+                
                 let contentHtml = "";
                 if (chat.type === 'image' && chat.image) {
                     contentHtml = `<img src="${chat.image}" onclick="window.open(this.src)">`;
@@ -293,7 +309,7 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        // Emoji
+        // Emoji Logic
         const emojis = ["😀","😂","😍","🥺","😎","😭","❤️","👍","👎","🔥","👋"];
         const picker = document.getElementById('emoji-picker');
         emojis.forEach(emo => {
