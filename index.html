@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chat App</title>
+    <style>
+        /* --- CSS STYLES --- */
+        * { box-sizing: border-box; margin: 5; padding: 0; font-family: sans-serif; }
+        body { background-color: #f0f2f5; height: 100vh; display: flex; overflow: hidden; }
+
+        /* Login Screen */
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 2000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .login-box { text-align: center; width: 90%; max-width: 300px; }
+        .login-box input { width: 100%; padding: 15px; border: 1px solid #ccc; border-radius: 0px; margin-bottom: 10px; font-size: 16px; }
+        .login-box button { width: 100%; padding: 15px; background: #212735; color: white; border: none; border-radius: 0px; font-size: 16px; cursor: pointer; }
+
+        /* Sidebar (Users) */
+        #sidebar { width: 300px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; height: 100%; z-index: 10; }
+        
+        .profile-section { padding: 15px; background: #f0f2f5; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+        .my-info { font-weight: bold; color: #0084ff; font-size: 16px; }
+        .logout-btn { background: #ff3b30; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        .connection-status { font-size: 10px; color: green; padding: 0 15px; margin-bottom: 5px; }
+        .section-title { padding: 15px; font-weight: bold; color: #555; background: #fff; border-bottom: 1px solid #eee; }
+
+        #user-list { list-style: none; flex: 1; overflow-y: auto; }
+        .user-item { padding: 15px; display: flex; align-items: center; cursor: pointer; border-bottom: 1px solid #f0f0f0; position: relative; }
+        .user-item:hover { background: #f5f5f5; }
+        .user-item.active { background: #e7f3ff; }
+        .avatar { width: 40px; height: 40px; background: #ddd; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #555; margin-right: 10px; }
+        .badge { background: red; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; position: absolute; right: 15px; display: none; }
+        .user-item.has-unread .badge { display: inline-block; }
+
+        /* Chat Area */
+        #chat-area { flex: 1; display: flex; flex-direction: column; background: #fff; position: relative; height: 100%; }
+        #empty-state { flex: 1; display: flex; justify-content: center; align-items: center; color: #888; background: #f0f2f5; }
+        #chat-container { display: none; flex-direction: column; height: 100%; width: 100%; }
+        
+        .chat-header { padding: 10px 15px; background: white; border-bottom: 1px solid #ddd; display: flex; align-items: center; height: 60px; flex-shrink: 0; }
+        .back-btn { margin-right: 10px; display: none; background: none; border: none; font-size: 20px; cursor: pointer; }
+
+        #messages-list { flex: 1; padding: 15px; overflow-y: auto; background: #eef1f5; display: flex; flex-direction: column; gap: 10px; }
+        
+        .message-row { display: flex; width: 100%; }
+        .message-row.sent { justify-content: flex-end; }
+        .message-row.received { justify-content: flex-start; }
+        
+        .bubble { max-width: 70%; padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.4; position: relative; word-wrap: break-word; }
+        .sent .bubble { background-color: #0084ff; color: white; border-bottom-right-radius: 4px; }
+        .received .bubble { background-color: white; color: black; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .msg-time { font-size: 10px; opacity: 0.7; margin-top: 5px; text-align: right; display: block; }
+        .bubble img { max-width: 200px; border-radius: 10px; margin-top: 5px; cursor: pointer; display: block; }
+
+        /* Input Area */
+        .input-area { padding: 10px; background: white; border-top: 1px solid #ddd; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .input-area input { flex: 1; padding: 12px 15px; border-radius: 20px; border: 1px solid #ddd; outline: none; }
+        .icon-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #555; padding: 5px; }
+
+        /* Emoji Picker */
+        #emoji-picker { position: absolute; bottom: 70px; left: 10px; background: white; border: 1px solid #ddd; padding: 10px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); display: none; grid-template-columns: repeat(6, 1fr); gap: 5px; width: 250px; z-index: 100; }
+        .emoji-item { font-size: 20px; cursor: pointer; padding: 5px; text-align: center; }
+
+        @media (max-width: 768px) {
+            #sidebar { width: 100%; position: absolute; }
+            #chat-area { width: 100%; position: absolute; transform: translateX(100%); transition: transform 0.3s; }
+            body.chat-active #sidebar { transform: translateX(-100%); }
+            body.chat-active #chat-area { transform: translateX(0); }
+            .back-btn { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>Privately Online</h2>
+            <input type="text" id="username" placeholder="Enter Nickname" autocomplete="off">
+            <button onclick="handleLogin()">Let's Chat</button>
+        </div>
+    </div>
+
+    <div id="sidebar">
+        <div class="profile-section">
+            <span class="my-info" id="my-display-name">...</span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+        <div id="conn-status" class="connection-status">Connecting...</div>
+        <div class="section-title">Online Users</div>
+        <ul id="user-list"></ul>
+    </div>
+
+    <div id="chat-area">
+        <div id="empty-state">
+            <p>Select a user to start chatting.</p>
+        </div>
+
+        <div id="chat-container">
+            <div class="chat-header">
+                <button class="back-btn" onclick="closeChat()">←</button>
+                <h3 id="chat-with-name">User</h3>
+            </div>
+
+            <div id="messages-list"></div>
+            <div id="emoji-picker"></div>
+
+            <form class="input-area" onsubmit="sendMessage(); return false;">
+                <button type="button" class="icon-btn" onclick="document.getElementById('file-input').click()">📷</button>
+                <input type="file" id="file-input" accept="image/*" hidden onchange="sendImage()">
+                <button type="button" class="icon-btn" onclick="toggleEmoji()">😊</button>
+                <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
+                <button type="submit" class="icon-btn" style="color: #0084ff;">➤</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let myName = "";
+        let activeChatUser = null;
+        let conversations = {}; // In-memory
+        let unreadCounts = {};
+
+        // --- 1. History Management (LocalStorage) ---
+        function saveHistory() {
+            if (myName) {
+                // Save conversations to browser storage
+                localStorage.setItem('chat_history_' + myName, JSON.stringify(conversations));
+            }
+        }
+
+        function loadHistory() {
+            if (myName) {
+                const savedData = localStorage.getItem('chat_history_' + myName);
+                if (savedData) {
+                    conversations = JSON.parse(savedData);
+                }
+            }
+        }
+
+        // --- 2. Login & Connection ---
+        window.onload = function() {
+            const savedName = localStorage.getItem('chat_nickname');
+            if (savedName) {
+                startChat(savedName);
+            }
+        };
+
+        socket.on('connect', () => {
+            document.getElementById('conn-status').innerText = "🟢 Online";
+            document.getElementById('conn-status').style.color = "green";
+            const savedName = localStorage.getItem('chat_nickname');
+            if(savedName) {
+                socket.emit('login', savedName); 
+            }
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('conn-status').innerText = "🔴 Offline";
+            document.getElementById('conn-status').style.color = "red";
+        });
+
+        function handleLogin() {
+            const input = document.getElementById('username');
+            const name = input.value.trim();
+            if (name) {
+                localStorage.setItem('chat_nickname', name);
+                startChat(name);
+            }
+        }
+
+        function startChat(name) {
+            myName = name;
+            loadHistory(); // Load old messages
+            socket.emit('login', myName);
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('my-display-name').innerText = "👤 " + myName;
+        }
+
+        function logout() {
+            // Clear everything on logout
+            localStorage.removeItem('chat_nickname');
+            localStorage.removeItem('chat_history_' + myName);
+            location.reload();
+        }
+
+        // --- 3. Users & Chat Logic ---
+        socket.on('update user list', (users) => {
+            const list = document.getElementById('user-list');
+            list.innerHTML = "";
+            users.forEach(user => {
+                if (user !== myName) {
+                    const li = document.createElement('li');
+                    li.className = `user-item ${activeChatUser === user ? 'active' : ''}`;
+                    li.id = `user-${user}`;
+                    const count = unreadCounts[user] || 0;
+                    if(count > 0) li.classList.add('has-unread');
+
+                    li.innerHTML = `
+                        <div class="avatar">${user[0].toUpperCase()}</div>
+                        <div class="user-name">${user}</div>
+                        <span class="badge">${count}</span>
+                    `;
+                    li.onclick = () => openChat(user);
+                    list.appendChild(li);
+                }
+            });
+        });
+
+        function openChat(user) {
+            activeChatUser = user;
+            document.body.classList.add('chat-active');
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('chat-container').style.display = 'flex';
+            document.getElementById('chat-with-name').innerText = user;
+
+            unreadCounts[user] = 0;
+            const userEl = document.getElementById(`user-${user}`);
+            if(userEl) {
+                userEl.classList.remove('has-unread');
+                userEl.querySelector('.badge').innerText = "";
+            }
+            renderMessages();
+        }
+
+        function closeChat() {
+            document.body.classList.remove('chat-active');
+            activeChatUser = null;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const msg = input.value.trim();
+            if (msg && activeChatUser) {
+                socket.emit('private message', { to: activeChatUser, msg: msg, type: 'text' });
+                input.value = "";
+            }
+        }
+
+        function sendImage() {
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            if (file.size > 5 * 1024 * 1024) { 
+                alert("Please select an image smaller than 5MB.");
+                return;
+            }
+            if (file && activeChatUser) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    socket.emit('private message', { 
+                        to: activeChatUser, 
+                        image: e.target.result, 
+                        type: 'image' 
+                    });
+                };
+                reader.readAsDataURL(file);
+                fileInput.value = '';
+            }
+        }
+
+        socket.on('private message', (data) => {
+            if(!data) return;
+
+            const partner = data.from === "Me" ? data.toUser : data.from;
+            if (!conversations[partner]) conversations[partner] = [];
+            
+            conversations[partner].push(data);
+            saveHistory(); // Save to local storage immediately
+
+            if (activeChatUser === partner) {
+                renderMessages();
+            } else if (data.from !== "Me") {
+                unreadCounts[partner] = (unreadCounts[partner] || 0) + 1;
+                const userEl = document.getElementById(`user-${partner}`);
+                if(userEl) {
+                    userEl.classList.add('has-unread');
+                    userEl.querySelector('.badge').innerText = unreadCounts[partner];
+                }
+            }
+        });
+
+        function renderMessages() {
+            const container = document.getElementById('messages-list');
+            container.innerHTML = "";
+            const chats = conversations[activeChatUser] || [];
+
+            chats.forEach(chat => {
+                const div = document.createElement('div');
+                div.className = `message-row ${chat.from === "Me" ? 'sent' : 'received'}`;
+                
+                let contentHtml = "";
+                if (chat.type === 'image' && chat.image) {
+                    contentHtml = `<img src="${chat.image}" onclick="window.open(this.src)">`;
+                } else {
+                    contentHtml = chat.msg || "";
+                }
+
+                if (contentHtml !== "") {
+                    div.innerHTML = `
+                        <div class="bubble">
+                            ${contentHtml}
+                            <span class="msg-time">${chat.timestamp || ''}</span>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                }
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Emoji Logic
+        const emojis = ["😀","😂","😍","🥺","😎","😭","❤️","👍","👎","🔥","👋"];
+        const picker = document.getElementById('emoji-picker');
+        emojis.forEach(emo => {
+            const span = document.createElement('div');
+            span.className = 'emoji-item';
+            span.textContent = emo;
+            span.onclick = () => {
+                const input = document.getElementById('message-input');
+                input.value += emo;
+                picker.style.display = 'none';
+                input.focus();
+            };
+            picker.appendChild(span);
+        });
+
+        function toggleEmoji() {
+            picker.style.display = picker.style.display === 'grid' ? 'none' : 'grid';
+        }
+    </script>
+</body>
+</html>
