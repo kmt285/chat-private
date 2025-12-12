@@ -4,6 +4,7 @@ const http = require("http").createServer(app);
 const io = require("socket.io")(http, { maxHttpBufferSize: 1e7 }); 
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+require('dotenv').config(); // .env ဖိုင်သုံးမယ်ဆိုရင် ထည့်ရန်
 
 // --- DATABASE CONNECTION SETUP ---
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/chat-app";
@@ -33,8 +34,7 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model("User", userSchema);
 
-// --- MESSAGE SCHEMA (For Offline Storage) ---
-// Message တွေကို ယာယီသိမ်းမယ့် ပုံစံ
+// --- MESSAGE SCHEMA (Offline & Auto Delete) ---
 const messageSchema = new mongoose.Schema({
   from: String,
   fromName: String,
@@ -44,7 +44,8 @@ const messageSchema = new mongoose.Schema({
   image: String,
   replyTo: Object,
   timestamp: String,
-  createdAt: { type: Date, default: Date.now } // Optional: Date check for cleanups
+  // ၇ ရက် (604,800 စက္ကန့်) ကျော်ရင် Auto ဖျက်မည့် စနစ်
+  createdAt: { type: Date, default: Date.now, expires: 604800 } 
 });
 const Message = mongoose.model("Message", messageSchema);
 
@@ -147,11 +148,10 @@ io.on("connection", (socket) => {
       broadcastUserList();
 
       // --- OFFLINE MESSAGES DELIVERY ---
-      // User Login ဝင်လာတာနဲ့ သူ့ဆီပို့ထားတဲ့ စာတွေကို ရှာမယ်
+      // Login ဝင်လာရင် မရောက်သေးတဲ့ စာတွေကို ရှာမယ်
       const pendingMessages = await Message.find({ toUser: username });
       
       if (pendingMessages.length > 0) {
-        // တစ်စောင်ချင်းစီ ပို့မယ်၊ ပြီးရင် Database ထဲကနေ ချက်ချင်းဖျက်မယ်
         for (const msg of pendingMessages) {
             socket.emit("private message", {
                 from: msg.from,
@@ -163,8 +163,7 @@ io.on("connection", (socket) => {
                 replyTo: msg.replyTo,
                 timestamp: msg.timestamp
             });
-            
-            // Delete from DB after sending to user
+            // ပို့ပြီးတာနဲ့ Database ထဲက ချက်ချင်းဖျက်မယ်
             await Message.deleteOne({ _id: msg._id });
         }
       }
@@ -241,7 +240,7 @@ io.on("connection", (socket) => {
     } catch(e) { console.error(e); }
   });
 
-  // --- MESSAGING (UPDATED FOR OFFLINE SUPPORT) ---
+  // --- MESSAGING ---
   socket.on("typing", (data) => {
       if(!data.to) return;
       const recipient = onlineUsers[data.to];
@@ -260,7 +259,7 @@ io.on("connection", (socket) => {
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Step 1: Save to Database FIRST (To ensure safety)
+    // Step 1: Database မှာ အရင်သိမ်းမယ်
     const newMessage = new Message({
         from: socket.username,
         fromName: socket.displayName,
@@ -287,10 +286,10 @@ io.on("connection", (socket) => {
             timestamp: savedMsg.timestamp
         };
 
-        // ကိုယ့်ဘက်ကို ပြန်ပို့ (Immediate feedback)
+        // ကိုယ့်ဘက်ကို ချက်ချင်းပြမယ်
         socket.emit("private message", { ...messageData, from: "Me" });
 
-        // Step 2: Check if recipient is Online
+        // Step 2: Recipient Online ဖြစ်မဖြစ် စစ်မယ်
         if (recipient && recipient.socketId) {
             // Online ဖြစ်ရင် Socket ကနေ ပို့မယ်
             io.to(recipient.socketId).emit("private message", messageData);
@@ -298,8 +297,7 @@ io.on("connection", (socket) => {
             // Recipient လက်ထဲရောက်ပြီမို့ Database ထဲကနေ ချက်ချင်းပြန်ဖျက်မယ်
             await Message.deleteOne({ _id: savedMsg._id });
         } 
-        // Offline ဖြစ်နေရင် ဘာမှလုပ်စရာမလိုပါ၊ Database ထဲမှာ ကျန်နေခဲ့မယ်။
-        // သူ Login ဝင်လာတဲ့အချိန်ကျမှ ပို့ပြီး ဖျက်ပစ်မယ်။
+        // Offline ဖြစ်ရင် ဘာမှလုပ်စရာမလို၊ DB မှာကျန်နေမယ် (၇ ရက်ကျော်ရင် Auto ပျက်မယ်)
 
     } catch (err) {
         console.error("Message Save Error:", err);
