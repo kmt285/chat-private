@@ -8,9 +8,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     
     <style>
-        /* --- CSS VARIABLES (THEME ENGINE) --- */
+        /* --- CSS VARIABLES --- */
         :root {
-            /* DEFAULT (Light Theme) - Based on your Original Code */
+            /* DEFAULT (Light Theme) - Original Design */
             --font-family: 'Inter', sans-serif;
             --bg-body: #ffffff;
             --bg-sidebar: #ffffff;
@@ -24,7 +24,7 @@
             --border-color: #f1f1f1;
             --border-input: #ddd;
             
-            --accent-color: #0084ff; /* Blue */
+            --accent-color: #0084ff;
             --accent-text: #ffffff;
             --danger-color: #ff4757;
             --success-color: #10b981;
@@ -39,11 +39,10 @@
             --radius-bubble: 18px;
             
             --grid-image: none;
-            --terminal-prefix: none; 
             --btn-shape: 8px;
         }
 
-        /* HACKER / CYBERPUNK THEME */
+        /* HACKER / DARK THEME */
         [data-theme="hacker"] {
             --font-family: 'Courier Prime', monospace;
             --bg-body: #050505;
@@ -54,7 +53,7 @@
             --bg-active: #1a1a1a;
             
             --text-primary: #00ff41; /* Matrix Green */
-            --text-secondary: #008f11; /* Darker Green */
+            --text-secondary: #008f11;
             --text-muted: #005500;
             
             --border-color: #333333;
@@ -62,8 +61,8 @@
             
             --accent-color: #ffb000; /* Amber/Yellow */
             --accent-text: #000000;
-            --danger-color: #ff3333;
-            --success-color: #00ff41;
+            --danger-color: #ff3333;   /* Bright Red for Offline */
+            --success-color: #00ff41;  /* Green for Online */
 
             --msg-sent-bg: transparent;
             --msg-sent-text: #ffb000;
@@ -71,18 +70,18 @@
             --msg-rcv-text: #00ff41;
 
             --shadow-card: 0 0 15px rgba(0, 255, 65, 0.1);
-            --radius-main: 0px; /* Square corners */
+            --radius-main: 0px;
             --radius-bubble: 0px;
             
             --grid-image: radial-gradient(#222 1px, transparent 1px);
             --btn-shape: 0px;
         }
 
-        /* --- GLOBAL RESET & BASE --- */
+        /* --- GLOBAL RESET --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-family); -webkit-tap-highlight-color: transparent; }
         body { 
             background-color: var(--bg-body); 
-            background-image: var(--grid-image); /* Dotted Grid for Hacker */
+            background-image: var(--grid-image); 
             background-size: 20px 20px;
             height: 100dvh; width: 100%; display: flex; overflow: hidden; 
             color: var(--text-primary); position: fixed; top: 0; left: 0; overscroll-behavior: none; 
@@ -97,6 +96,10 @@
 
         #auth-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-input); z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 10vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         [data-theme="hacker"] #auth-screen { background: var(--bg-body); background-image: var(--grid-image); background-size: 20px 20px; }
+
+        /* Login Theme Switcher */
+        .login-theme-switch { position: absolute; top: 20px; right: 20px; background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 10px; z-index: 3001; }
+        .login-theme-switch:hover { color: var(--accent-color); }
 
         .auth-box { background: var(--bg-sidebar); padding: 30px 25px; border-radius: var(--radius-main); box-shadow: var(--shadow-card); width: 90%; max-width: 350px; text-align: center; border: 1px solid var(--border-color); flex-shrink: 0; margin-bottom: 50px; }
         [data-theme="hacker"] .auth-box { border: 1px solid var(--accent-color); box-shadow: 0 0 15px rgba(255, 176, 0, 0.2); }
@@ -120,7 +123,7 @@
         .error { background-color: rgba(255, 71, 87, 0.1); color: var(--danger-color); }
         .success { background-color: rgba(16, 185, 129, 0.1); color: var(--success-color); }
 
-        /* --- APP LAYOUT --- */
+        /* --- SIDEBAR --- */
         #app-container { display: none; width: 100%; height: 100%; flex-direction: row; overflow: hidden; }
         #sidebar { width: 320px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; height: 100%; z-index: 10; flex-shrink: 0; }
 
@@ -130,6 +133,19 @@
         .avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 600; color: white; flex-shrink: 0; text-transform: uppercase; font-size: 16px; position: relative; }
         [data-theme="hacker"] .avatar { border-radius: 0; border: 1px solid var(--accent-color); background: transparent !important; color: var(--accent-color); }
         
+        /* THEME SPECIFIC: $ Sign for Self Profile in Hacker Theme */
+        [data-theme="hacker"] .profile-header .avatar::after {
+            content: "$";
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            background: var(--bg-sidebar);
+            color: var(--accent-color);
+            font-size: 14px;
+            font-weight: bold;
+            padding: 0 2px;
+        }
+
         .my-name-container { display: flex; flex-direction: column; min-width: 0; justify-content: center; }
         .my-name-text { font-weight: 600; font-size: 16px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .edit-icon { font-size: 12px; color: var(--text-muted); }
@@ -140,11 +156,9 @@
         .theme-btn { color: var(--text-secondary); }
         .theme-btn:hover { color: var(--accent-color); }
 
-        /* Search */
         .sidebar-search { padding: 10px 15px; border-bottom: 1px solid var(--border-color); }
         .search-input-wrap { background: var(--bg-input); border-radius: 8px; display: flex; align-items: center; padding: 8px 12px; border: 1px solid transparent; }
         [data-theme="hacker"] .search-input-wrap { border-radius: 0; border: 1px solid var(--border-color); background: transparent; }
-        
         .search-input-wrap input { background: transparent; border: none; outline: none; flex: 1; font-size: 14px; margin-left: 8px; color: var(--text-primary); }
         .search-icon { color: var(--text-muted); cursor: pointer; }
 
@@ -152,12 +166,9 @@
         [data-theme="hacker"] .section-label::before { content: "> "; color: var(--accent-color); margin-right: 5px; }
         
         .user-lists-container { flex: 1; overflow-y: auto; padding: 0 10px 10px; }
-
-        /* Lists */
         .list-group { margin-bottom: 15px; }
         .user-item { padding: 10px 12px; margin-bottom: 2px; display: flex; align-items: center; cursor: pointer; border-radius: 8px; border-left: 3px solid transparent; }
         [data-theme="hacker"] .user-item { border-radius: 0; border-bottom: 1px solid #111; }
-        
         .user-item:hover { background: var(--bg-hover); }
         .user-item.active { background: var(--bg-active); }
         [data-theme="hacker"] .user-item.active { background: #111; border-left-color: var(--accent-color); }
@@ -166,20 +177,26 @@
         .user-info-col { flex: 1; margin-left: 12px; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
         .user-name { font-size: 15px; color: var(--text-primary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* Status */
+        /* --- STATUS INDICATORS --- */
+        /* Light Theme: Dot */
         .status-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--bg-sidebar); position: absolute; bottom: 0; right: 0; }
         .is-online { background-color: var(--success-color); }
         .is-offline { background-color: var(--text-muted); }
-        [data-theme="hacker"] .is-online { background-color: var(--success-color); box-shadow: 0 0 5px var(--success-color); border: none; }
         
-        .status-text { font-size: 10px; margin-left: auto; color: var(--text-muted); }
-        .status-text.on { color: var(--success-color); font-weight: 500; }
+        /* Hacker Theme: No Dot, Show Text */
+        [data-theme="hacker"] .status-dot { display: none; }
+        
+        .status-text { font-size: 10px; margin-left: auto; color: var(--text-muted); display: none; } /* Hidden by default in Light */
+        [data-theme="hacker"] .status-text { display: block; font-weight: bold; font-family: monospace; }
+        
+        [data-theme="hacker"] .status-text.on { color: var(--success-color); } /* Green Online */
+        [data-theme="hacker"] .status-text.off { color: var(--danger-color); } /* Red Offline */
 
         .badge { background: var(--danger-color); color: white; font-size: 10px; height: 18px; min-width: 18px; padding: 0 5px; border-radius: 9px; font-weight: 600; display: none; align-items: center; justify-content: center; margin-left: 8px; }
         .user-item.has-unread .badge { display: flex; }
         [data-theme="hacker"] .badge { border-radius: 0; background: var(--accent-color); color: black; }
 
-        /* Chat Area */
+        /* --- CHAT AREA --- */
         #chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-chat); position: relative; height: 100%; min-width: 0; overflow: hidden; }
         #empty-state { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--text-muted); padding: 20px; }
         #chat-container { display: none; flex-direction: column; height: 100%; width: 100%; overflow: hidden; }
@@ -200,10 +217,8 @@
         .action-btn:hover { background-color: var(--bg-hover); color: var(--text-primary); }
         .action-btn.delete { color: var(--danger-color); }
         .action-btn.delete:hover { background-color: rgba(255, 71, 87, 0.1); }
-        
         .action-btn.add { color: var(--accent-color); }
         .action-btn.add:hover { background-color: var(--bg-active); }
-        /* Hacker Theme: Force Icon Colors */
         [data-theme="hacker"] .action-btn.add { color: var(--success-color); } 
         [data-theme="hacker"] .action-btn.delete { color: var(--danger-color); }
 
@@ -211,10 +226,8 @@
         .message-row { display: flex; width: 100%; margin-bottom: 4px; }
         .sent { justify-content: flex-end; }
         .received { justify-content: flex-start; }
-        
         .bubble { max-width: 75%; padding: 10px 14px; border-radius: var(--radius-bubble); font-size: 15px; position: relative; word-wrap: break-word; line-height: 1.4; user-select: none; }
         
-        /* Hacker Theme Bubble Overrides */
         [data-theme="hacker"] .bubble { border-radius: 0; padding: 5px 0; max-width: 90%; background: transparent !important; }
         [data-theme="hacker"] .sent .bubble { text-align: right; border-bottom: none; }
         [data-theme="hacker"] .received .bubble { text-align: left; border-bottom: none; }
@@ -223,17 +236,13 @@
 
         .msg-reply-quote { display: block; margin-bottom: 6px; padding: 6px 10px; background: rgba(0,0,0,0.08); border-left: 3px solid var(--text-secondary); border-radius: 4px; font-size: 12px; color: inherit; opacity: 0.8; cursor: pointer; }
         .sent .msg-reply-quote { background: rgba(255,255,255,0.2); border-color: white; }
-        
         .sent .bubble { background: var(--msg-sent-bg); color: var(--msg-sent-text); border-bottom-right-radius: 4px; }
         .received .bubble { background-color: var(--msg-rcv-bg); color: var(--msg-rcv-text); border-bottom-left-radius: 4px; }
-        
         .bubble img { max-width: 100%; border-radius: 10px; margin-bottom: 5px; cursor: pointer; display: block; }
         [data-theme="hacker"] .bubble img { border: 1px solid var(--accent-color); border-radius: 0; opacity: 0.9; }
-
         .msg-time { font-size: 10px; opacity: 0.7; display: block; text-align: right; margin-top: 4px; }
         .sys-msg .bubble { background: rgba(255, 71, 87, 0.1); color: var(--danger-color); border-radius: 10px; font-size: 13px; text-align: center; }
 
-        /* Reply & Input */
         #reply-preview-box { display: none; background: var(--bg-hover); border-left: 4px solid var(--accent-color); padding: 8px 15px; font-size: 13px; color: var(--text-secondary); flex-shrink: 0; justify-content: space-between; align-items: center; }
         .reply-info { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
         .reply-to-name { font-weight: 600; color: var(--accent-color); margin-bottom: 2px; }
@@ -246,14 +255,11 @@
 
         .icon-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-muted); padding: 5px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
         [data-theme="hacker"] .icon-btn { color: var(--text-secondary); }
-
         .input-wrapper { flex: 1; background: var(--bg-input); border-radius: 20px; display: flex; align-items: center; padding: 8px 15px; min-width: 0; }
         [data-theme="hacker"] .input-wrapper { background: transparent; border: none; padding: 0; border-radius: 0; }
-        
         .input-area input { flex: 1; background: transparent; border: none; outline: none; font-size: 15px; color: var(--text-primary); min-width: 0; }
         .emoji-btn { cursor: pointer; font-size: 18px; padding: 5px; color: var(--text-secondary); margin-left: 5px; opacity: 0.7; transition: opacity 0.2s; }
         .emoji-btn:hover { opacity: 1; }
-        
         .send-btn { background: var(--accent-color); color: var(--accent-text); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; flex-shrink: 0; }
         .send-btn svg { width: 18px; height: 18px; fill: white; margin-left: 2px; }
         [data-theme="hacker"] .send-btn { border-radius: 0; width: auto; height: auto; padding: 8px 15px; font-weight: bold; }
@@ -263,7 +269,6 @@
         emoji-picker { display: none; position: absolute; bottom: 70px; right: 15px; z-index: 100; box-shadow: 0 5px 20px rgba(0,0,0,0.2); border-radius: 12px; --background: var(--bg-sidebar); height: 350px; width: 300px; }
         @media (max-width: 480px) { emoji-picker { width: 90%; right: 5%; bottom: 80px; } }
 
-        /* Viewer & Toast */
         #toast-box { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 30px; font-size: 14px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 7000; display: flex; align-items: center; gap: 8px; }
         [data-theme="hacker"] #toast-box { background: var(--text-primary); color: black; border-radius: 0; font-weight: bold; }
         #toast-box.show { opacity: 1; }
@@ -272,23 +277,18 @@
         #img-viewer .close-viewer { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 35px; font-weight: bold; cursor: pointer; background: rgba(255,255,255,0.1); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
         @keyframes fadeIn { from {opacity: 0} to {opacity: 1} }
 
-        /* Modals */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 6000; display: none; backdrop-filter: blur(1px); }
         .modal-center { justify-content: center; align-items: center; }
         .modal-top { justify-content: center; align-items: flex-start; padding-top: 15vh; }
-        
         .modal-box { background: var(--bg-sidebar); width: 85%; max-width: 300px; padding: 20px; border-radius: var(--radius-main); text-align: center; box-shadow: 0 5px 20px rgba(0,0,0,0.15); margin: 0 auto; border: 1px solid var(--border-color); }
         [data-theme="hacker"] .modal-box { border: 1px solid var(--accent-color); box-shadow: 0 0 20px rgba(0,0,0,0.9); }
-        
         .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); }
         .modal-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
         .modal-input { width: 100%; padding: 10px; border: 1px solid var(--border-input); border-radius: 6px; font-size: 15px; margin-bottom: 20px; outline: none; background: var(--bg-input); color: var(--text-primary); }
         [data-theme="hacker"] .modal-input { border-radius: 0; border: 1px solid var(--border-color); }
-        
         .modal-btns { display: flex; gap: 10px; justify-content: center; }
         .btn-modal { padding: 8px 0; border-radius: 6px; border: none; font-weight: 500; cursor: pointer; flex: 1; font-size: 14px; }
         [data-theme="hacker"] .btn-modal { border-radius: 0; font-weight: bold; border: 1px solid var(--border-color); background: transparent; color: var(--text-primary); }
-        
         .btn-cancel { background: var(--bg-input); color: var(--text-primary); }
         .btn-confirm { background: var(--danger-color); color: white; }
         .btn-save { background: var(--accent-color); color: var(--accent-text); }
@@ -298,7 +298,7 @@
             #sidebar { width: 100%; }
             #chat-area { width: 100%; position: absolute; top:0; left:0; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1); z-index: 50; }
             body.chat-active #chat-area { transform: translateX(0); }
-            body.chat-active #sidebar { display: none; } /* Original Logic Retained */
+            body.chat-active #sidebar { display: none; }
             .back-btn { display: block; }
         }
     </style>
@@ -313,6 +313,10 @@
     <div id="toast-box"><span id="toast-msg">Notification</span></div>
 
     <div id="auth-screen">
+        <button class="login-theme-switch" onclick="toggleTheme()" title="Switch Theme">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+
         <div id="login-form" class="auth-box">
             <h2>Welcome</h2>
             <div class="auth-sub">Login to continue</div>
@@ -505,7 +509,7 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // --- NEW THEME LOGIC ADDED HERE ---
+        // --- THEME LOGIC ---
         function toggleTheme() {
             const body = document.body;
             const current = body.getAttribute('data-theme');
@@ -513,13 +517,12 @@
             body.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
         }
-        // Init Theme
         (function(){
             const t = localStorage.getItem('theme') || 'light';
             document.body.setAttribute('data-theme', t);
         })();
 
-        // --- ORIGINAL JAVASCRIPT LOGIC BELOW ---
+        // --- ORIGINAL JS ---
         const socket = io();
         let myUsername = "", myDisplayName = "", activeChatUser = null;
         let conversations = {};
@@ -529,7 +532,6 @@
         const colors = ["#ef4444", "#f97316", "#f59e0b", "#84cc16", "#10b981", "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6", "#d946ef", "#f43f5e"];
         let currentReply = null;
 
-        // Utils
         function getAvatarColor(name) { let sum=0; for(let i=0; i<name.length; i++) sum+=name.charCodeAt(i); return colors[sum % colors.length]; }
         function getInitials(name) { if(!name) return "?"; const p=name.trim().split(" "); if(p.length===1) return p[0].substring(0,2).toUpperCase(); return (p[0][0]+p[p.length-1][0]).toUpperCase(); }
         function escapeHtml(t) { if(!t) return t; return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
@@ -539,7 +541,6 @@
         function closeImageViewer() { document.getElementById('img-viewer').style.display = "none"; }
         function showToast(msg) { const t=document.getElementById('toast-box'); document.getElementById('toast-msg').innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3000); }
 
-        // Emoji Picker
         function toggleEmojiPicker() { const p = document.querySelector('emoji-picker'); p.style.display = p.style.display === 'block' ? 'none' : 'block'; }
         document.querySelector('emoji-picker').addEventListener('emoji-click', e => { document.getElementById('message-input').value += e.detail.unicode; document.getElementById('message-input').focus(); });
         document.addEventListener('click', e => { const p=document.querySelector('emoji-picker'); const b=document.querySelector('.emoji-btn'); if(p.style.display==='block' && !p.contains(e.target) && !b.contains(e.target)) p.style.display='none'; });
@@ -547,11 +548,9 @@
         window.onload = function() {
             const savedUser = localStorage.getItem('temp_user');
             if(!savedUser) {
-                // No saved user, show login screen immediately
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('auth-screen').style.display = 'flex';
             }
-            // If savedUser exists, wait for socket.on('connect') to trigger auto-login
         };
 
         function showRegister() { document.getElementById('login-form').style.display='none'; document.getElementById('register-form').style.display='block'; clearMsgs(); }
@@ -563,7 +562,6 @@
             const u = document.getElementById('login-user').value.trim();
             const p = document.getElementById('login-pass').value;
             if(!u || !p) return showStatus('login-msg', 'Enter ID and Password', 'error');
-            // Save credentials for auto-login on refresh
             localStorage.setItem('temp_user', u); 
             localStorage.setItem('temp_pass', p);
             socket.emit('login', { username: u, password: p });
@@ -579,40 +577,24 @@
         socket.on('connect', () => {
             const sUser = localStorage.getItem('temp_user');
             const sPass = localStorage.getItem('temp_pass');
-            if(sUser && sPass) {
-                // Auto-login on refresh
-                socket.emit('login', { username: sUser, password: sPass });
-            }
+            if(sUser && sPass) { socket.emit('login', { username: sUser, password: sPass }); }
         });
 
         socket.on('login_error', msg => {
             document.getElementById('loading-screen').style.display = 'none';
             document.getElementById('auth-screen').style.display = 'flex';
-
-            const match = msg.match(/wait (\d+) seconds/);
-            if (match) {
-                let seconds = parseInt(match[1]);
+            if(msg.match(/wait (\d+) seconds/)) {
+                let seconds = parseInt(msg.match(/wait (\d+) seconds/)[1]);
                 const msgDiv = document.getElementById('login-msg');
                 showStatus('login-msg', msg, 'error');
                 if (window.loginTimer) clearInterval(window.loginTimer);
                 window.loginTimer = setInterval(() => {
                     seconds--;
-                    if (seconds <= 0) {
-                        clearInterval(window.loginTimer);
-                        msgDiv.innerText = "You can try again now.";
-                        msgDiv.className = "status-msg success";
-                    } else {
-                        msgDiv.innerText = `Too many attempts! Please wait ${seconds} seconds.`;
-                    }
+                    if (seconds <= 0) { clearInterval(window.loginTimer); msgDiv.innerText = "You can try again now."; msgDiv.className = "status-msg success"; } 
+                    else { msgDiv.innerText = `Too many attempts! Please wait ${seconds} seconds.`; }
                 }, 1000);
-            } else {
-                showStatus('login-msg', msg, 'error');
-            }
-            // If login failed (e.g. password changed), clear stored creds
-            if(msg.includes("Incorrect") || msg.includes("not found")) {
-                localStorage.removeItem('temp_pass'); 
-                localStorage.removeItem('temp_user');
-            }
+            } else { showStatus('login-msg', msg, 'error'); }
+            if(msg.includes("Incorrect") || msg.includes("not found")) { localStorage.removeItem('temp_pass'); localStorage.removeItem('temp_user'); }
         });
 
         socket.on('reg_error', m => showStatus('reg-msg', m, 'error'));
@@ -623,14 +605,11 @@
             myUsername = data.username;
             myDisplayName = data.displayName;
             myFriends = data.friends || [];
-
             const loader = document.getElementById('loading-screen');
             loader.style.opacity = '0';
             setTimeout(() => loader.style.display = 'none', 300);
-
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('app-container').style.display = 'flex';
-
             updateMyProfileUI();
             loadHistory();
         });
@@ -653,8 +632,9 @@
             li.id = `user-${u.username}`;
             const count = unreadCounts[u.username] || 0;
             if(count > 0) li.classList.add('has-unread');
+            
             const statusClass = isOnline ? 'is-online' : 'is-offline';
-            const statusTextClass = isOnline ? 'on' : '';
+            const statusTextClass = isOnline ? 'on' : 'off';
             let statusHtml = showStatus ? `<div class="status-dot ${statusClass}"></div>` : '';
 
             li.innerHTML = `
@@ -663,7 +643,7 @@
                     <div class="user-name">${escapeHtml(u.displayName)}</div>
                     <div class="user-id-sub">${formatUniqueID(u.username)}</div>
                 </div>
-                <span class="status-text ${statusTextClass}" style="${!showStatus ? 'display:none' : ''}">${isOnline?'Online':'Offline'}</span>
+                <span class="status-text ${statusTextClass}">${isOnline?'Online':'Offline'}</span>
                 <span class="badge">${count}</span>
             `;
             li.onclick = () => openChat(u.username, u.displayName);
@@ -765,7 +745,6 @@
         function showDeleteConfirm() { if(activeChatUser) document.getElementById('modal-delete-chat').style.display = 'flex'; }
         function confirmDeleteChat() { if(activeChatUser) { delete conversations[activeChatUser]; saveHistory(); renderMessages(); closeModal('modal-delete-chat'); showToast("History deleted"); } }
         
-        // --- MOBILE BACK LOGIC (PRESERVED) ---
         window.addEventListener('popstate', () => { if (activeChatUser) closeChatUI(); });
 
         function openChat(username, displayName) {
