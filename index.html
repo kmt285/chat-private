@@ -524,15 +524,40 @@
             } else { section.style.display = 'none'; }
         }
 
+        // --- FIXED: renderActiveUsers to show Offline Strangers with messages ---
         function renderActiveUsers() {
             const list = document.getElementById('user-list');
             list.innerHTML = "";
+            
+            // Track who we have rendered to avoid duplicates
+            let renderedUsers = new Set();
+
+            // 1. Render Online Strangers (Existing Logic)
             onlineUserList.forEach(u => {
-                if (u.username !== myUsername) {
-                    if (!myFriends.some(f => f.username === u.username)) {
-                        // Change here: pass TRUE instead of FALSE for showStatus
-                        list.appendChild(createListItem(u, true, true)); 
+                if (u.username !== myUsername && !myFriends.some(f => f.username === u.username)) {
+                    list.appendChild(createListItem(u, true, true)); 
+                    renderedUsers.add(u.username);
+                }
+            });
+
+            // 2. Render Offline Strangers who have sent/received messages (New Logic)
+            Object.keys(conversations).forEach(chatPartnerId => {
+                if (chatPartnerId !== "Me" && 
+                    chatPartnerId !== myUsername && 
+                    !myFriends.some(f => f.username === chatPartnerId) && 
+                    !renderedUsers.has(chatPartnerId)) {
+                    
+                    // Try to find a display name from the chat history
+                    let displayName = chatPartnerId;
+                    const msgs = conversations[chatPartnerId];
+                    if(msgs && msgs.length > 0) {
+                        // Find a message from them to get their display name
+                        const msgFromThem = msgs.find(m => m.from !== "Me");
+                        if(msgFromThem && msgFromThem.fromName) displayName = msgFromThem.fromName;
                     }
+
+                    // Render as Offline (isOnline=false)
+                    list.appendChild(createListItem({ username: chatPartnerId, displayName: displayName }, false, true));
                 }
             });
         }
