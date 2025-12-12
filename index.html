@@ -300,7 +300,7 @@
     <div id="modal-logout" class="modal-overlay modal-top">
         <div class="modal-box">
             <div class="modal-title">Logout</div>
-            <div class="modal-desc">Are you sure you want to exit?</div>
+            <div class="modal-desc">Your chat history will be cleared.</div>
             <div class="modal-btns">
                 <button class="btn-modal btn-cancel" onclick="closeModal('modal-logout')">Cancel</button>
                 <button class="btn-modal btn-confirm" onclick="confirmLogout()">Logout</button>
@@ -378,20 +378,12 @@
 
         window.onload = function() {
             const savedUser = localStorage.getItem('temp_user');
-            setTimeout(() => {
-                const loader = document.getElementById('loading-screen');
-                if (loader.style.display !== 'none' && loader.style.opacity !== '0') {
-                    localStorage.removeItem('temp_user'); localStorage.removeItem('temp_pass');
-                    loader.style.display = 'none'; document.getElementById('auth-screen').style.display = 'flex';
-                }
-            }, 3000);
             if(!savedUser) {
-                document.getElementById('loading-screen').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('loading-screen').style.display = 'none';
-                    document.getElementById('auth-screen').style.display = 'flex';
-                }, 300);
+                // No saved user, show login screen immediately
+                document.getElementById('loading-screen').style.display = 'none';
+                document.getElementById('auth-screen').style.display = 'flex';
             }
+            // If savedUser exists, wait for socket.on('connect') to trigger auto-login
         };
 
         function showRegister() { document.getElementById('login-form').style.display='none'; document.getElementById('register-form').style.display='block'; clearMsgs(); }
@@ -403,7 +395,9 @@
             const u = document.getElementById('login-user').value.trim();
             const p = document.getElementById('login-pass').value;
             if(!u || !p) return showStatus('login-msg', 'Enter ID and Password', 'error');
-            localStorage.setItem('temp_user', u); localStorage.setItem('temp_pass', p);
+            // Save credentials for auto-login on refresh
+            localStorage.setItem('temp_user', u); 
+            localStorage.setItem('temp_pass', p);
             socket.emit('login', { username: u, password: p });
         }
         function doRegister() {
@@ -417,25 +411,22 @@
         socket.on('connect', () => {
             const sUser = localStorage.getItem('temp_user');
             const sPass = localStorage.getItem('temp_pass');
-            if(sUser && sPass) socket.emit('login', { username: sUser, password: sPass });
+            if(sUser && sPass) {
+                // Auto-login on refresh
+                socket.emit('login', { username: sUser, password: sPass });
+            }
         });
 
-        // --- NEW: AUTO COUNTDOWN LOGIC ---
         socket.on('login_error', msg => {
             document.getElementById('loading-screen').style.display = 'none';
             document.getElementById('auth-screen').style.display = 'flex';
 
-            // Check for waiting seconds
             const match = msg.match(/wait (\d+) seconds/);
             if (match) {
                 let seconds = parseInt(match[1]);
                 const msgDiv = document.getElementById('login-msg');
                 showStatus('login-msg', msg, 'error');
-
-                // Clear any existing timer
                 if (window.loginTimer) clearInterval(window.loginTimer);
-
-                // Start countdown
                 window.loginTimer = setInterval(() => {
                     seconds--;
                     if (seconds <= 0) {
@@ -449,15 +440,18 @@
             } else {
                 showStatus('login-msg', msg, 'error');
             }
-
-            localStorage.removeItem('temp_pass'); localStorage.removeItem('temp_user');
+            // If login failed (e.g. password changed), clear stored creds
+            if(msg.includes("Incorrect") || msg.includes("not found")) {
+                localStorage.removeItem('temp_pass'); 
+                localStorage.removeItem('temp_user');
+            }
         });
 
         socket.on('reg_error', m => showStatus('reg-msg', m, 'error'));
         socket.on('reg_success', m => { showStatus('reg-msg', m, 'success'); setTimeout(() => { showLogin(); showStatus('login-msg', 'Account created!', 'success'); }, 1500); });
 
         socket.on('login_success', (data) => {
-            if (window.loginTimer) clearInterval(window.loginTimer); // Stop timer on success
+            if (window.loginTimer) clearInterval(window.loginTimer);
             myUsername = data.username;
             myDisplayName = data.displayName;
             myFriends = data.friends || [];
@@ -481,7 +475,6 @@
             myAv.style.backgroundColor = getAvatarColor(myDisplayName);
         }
 
-        // Render Logic
         socket.on('update user list', (users) => { onlineUserList = users; renderAllLists(); });
         function renderAllLists() { renderFriends(); renderActiveUsers(); }
 
@@ -543,7 +536,6 @@
             });
         }
 
-        // Search & Friends
         function searchUser() {
             const q = document.getElementById('user-search-input').value.trim().toLowerCase();
             if(!q) return;
@@ -575,10 +567,24 @@
         });
         function addFriendFromChat() { if(activeChatUser) socket.emit('add_friend', activeChatUser); }
 
-        // Modals & Chat
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         function showLogoutConfirm() { document.getElementById('modal-logout').style.display = 'flex'; }
-        function confirmLogout() { localStorage.removeItem('temp_user'); localStorage.removeItem('temp_pass'); location.reload(); }
+        
+        // --- LOGOUT LOGIC UPDATE ---
+        function confirmLogout() { 
+            // 1. Delete credentials
+            localStorage.removeItem('temp_user'); 
+            localStorage.removeItem('temp_pass'); 
+            
+            // 2. DELETE CHAT HISTORY
+            if(myUsername) {
+                localStorage.removeItem('chat_history_' + myUsername);
+            }
+            
+            // 3. Reload Page
+            location.reload(); 
+        }
+
         function showChangeNameModal() { document.getElementById('new-name-input').value = myDisplayName; document.getElementById('modal-change-name').style.display = 'flex'; setTimeout(() => document.getElementById('new-name-input').focus(), 100); }
         function saveNewName() { const n = document.getElementById('new-name-input').value.trim(); if(n && n !== myDisplayName) { socket.emit('change_display_name', n); closeModal('modal-change-name'); } else { closeModal('modal-change-name'); } }
         socket.on('name_changed_success', (n) => { myDisplayName = n; updateMyProfileUI(); showToast("Name updated!"); });
