@@ -31,8 +31,22 @@ const userSchema = new mongoose.Schema({
   displayName: String,
   friends: [String]
 });
-
 const User = mongoose.model("User", userSchema);
+
+// --- MESSAGE SCHEMA (For Offline Storage) ---
+// Message တွေကို ယာယီသိမ်းမယ့် ပုံစံ
+const messageSchema = new mongoose.Schema({
+  from: String,
+  fromName: String,
+  toUser: String,
+  msg: String,
+  type: String,
+  image: String,
+  replyTo: Object,
+  timestamp: String,
+  createdAt: { type: Date, default: Date.now } // Optional: Date check for cleanups
+});
+const Message = mongoose.model("Message", messageSchema);
 
 app.get("/", (req, res) => { res.sendFile(__dirname + "/index.html"); });
 
@@ -132,6 +146,29 @@ io.on("connection", (socket) => {
       socket.emit("login_success", { username, displayName: user.displayName, friends: friendsData });
       broadcastUserList();
 
+      // --- OFFLINE MESSAGES DELIVERY ---
+      // User Login ဝင်လာတာနဲ့ သူ့ဆီပို့ထားတဲ့ စာတွေကို ရှာမယ်
+      const pendingMessages = await Message.find({ toUser: username });
+      
+      if (pendingMessages.length > 0) {
+        // တစ်စောင်ချင်းစီ ပို့မယ်၊ ပြီးရင် Database ထဲကနေ ချက်ချင်းဖျက်မယ်
+        for (const msg of pendingMessages) {
+            socket.emit("private message", {
+                from: msg.from,
+                fromName: msg.fromName,
+                toUser: msg.toUser,
+                msg: msg.msg,
+                type: msg.type,
+                image: msg.image,
+                replyTo: msg.replyTo,
+                timestamp: msg.timestamp
+            });
+            
+            // Delete from DB after sending to user
+            await Message.deleteOne({ _id: msg._id });
+        }
+      }
+
     } catch (err) {
       console.error("Login Error:", err);
       socket.emit("login_error", "Login failed due to server error.");
@@ -204,7 +241,7 @@ io.on("connection", (socket) => {
     } catch(e) { console.error(e); }
   });
 
-  // --- MESSAGING ---
+  // --- MESSAGING (UPDATED FOR OFFLINE SUPPORT) ---
   socket.on("typing", (data) => {
       if(!data.to) return;
       const recipient = onlineUsers[data.to];
@@ -217,28 +254,56 @@ io.on("connection", (socket) => {
       if(recipient) io.to(recipient.socketId).emit("hide_typing", { from: socket.username });
   });
 
-  socket.on("private message", (data) => {
+  socket.on("private message", async (data) => {
     if (!data || !data.to) return;
     if ((!data.msg || !data.msg.trim()) && !data.image) return;
 
-    const recipient = onlineUsers[data.to];
-    const messageData = {
-      from: socket.username,
-      fromName: socket.displayName,
-      toUser: data.to,
-      msg: data.msg || "",
-      type: data.type || 'text',
-      image: data.image || null,
-      replyTo: data.replyTo || null,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    if (recipient && recipient.socketId) {
-      io.to(recipient.socketId).emit("private message", messageData);
-      socket.emit("private message", { ...messageData, from: "Me" });
-    } else {
-        socket.emit("msg_failed", { to: data.to, msg: "User is offline. Message not sent." });
+    // Step 1: Save to Database FIRST (To ensure safety)
+    const newMessage = new Message({
+        from: socket.username,
+        fromName: socket.displayName,
+        toUser: data.to,
+        msg: data.msg || "",
+        type: data.type || 'text',
+        image: data.image || null,
+        replyTo: data.replyTo || null,
+        timestamp: timestamp
+    });
+
+    try {
+        const savedMsg = await newMessage.save();
+        const recipient = onlineUsers[data.to];
+
+        const messageData = {
+            from: socket.username,
+            fromName: socket.displayName,
+            toUser: data.to,
+            msg: savedMsg.msg,
+            type: savedMsg.type,
+            image: savedMsg.image,
+            replyTo: savedMsg.replyTo,
+            timestamp: savedMsg.timestamp
+        };
+
+        // ကိုယ့်ဘက်ကို ပြန်ပို့ (Immediate feedback)
         socket.emit("private message", { ...messageData, from: "Me" });
+
+        // Step 2: Check if recipient is Online
+        if (recipient && recipient.socketId) {
+            // Online ဖြစ်ရင် Socket ကနေ ပို့မယ်
+            io.to(recipient.socketId).emit("private message", messageData);
+            
+            // Recipient လက်ထဲရောက်ပြီမို့ Database ထဲကနေ ချက်ချင်းပြန်ဖျက်မယ်
+            await Message.deleteOne({ _id: savedMsg._id });
+        } 
+        // Offline ဖြစ်နေရင် ဘာမှလုပ်စရာမလိုပါ၊ Database ထဲမှာ ကျန်နေခဲ့မယ်။
+        // သူ Login ဝင်လာတဲ့အချိန်ကျမှ ပို့ပြီး ဖျက်ပစ်မယ်။
+
+    } catch (err) {
+        console.error("Message Save Error:", err);
+        socket.emit("msg_failed", { to: data.to, msg: "Server Error: Message not sent." });
     }
   });
 
