@@ -6,7 +6,6 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 // --- DATABASE CONNECTION SETUP ---
-// Database ချိတ်ပြီးမှ Server အလုပ်လုပ်မယ့် စနစ်
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/chat-app";
 const port = process.env.PORT || 3000;
 
@@ -17,23 +16,20 @@ console.log("⏳ Connecting to MongoDB...");
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log("✅ Connected to MongoDB Successfully!");
-    
-    // Database ချိတ်မှ Server စဖွင့်မယ်
     http.listen(port, () => {
       console.log("🚀 Server running on port " + port);
     });
   })
   .catch(err => {
     console.error("❌ MongoDB Connection Error:", err);
-    console.log("Server will not start due to DB error.");
   });
 
-// --- USER SCHEMA (Database ပုံစံ) ---
+// --- USER SCHEMA ---
 const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   password: { type: String, required: true },
   displayName: String,
-  friends: [String] // သူငယ်ချင်းစာရင်း
+  friends: [String]
 });
 
 const User = mongoose.model("User", userSchema);
@@ -57,17 +53,13 @@ io.on("connection", (socket) => {
     }
 
     try {
-      // Database မှာ ရှိပြီးသားလား စစ်မယ်
       const existingUser = await User.findOne({ username });
       if (existingUser) {
         socket.emit("reg_error", "Login ID already taken!");
         return;
       }
 
-      // Password ကို Hash လုပ်မယ်
       const hashedPassword = await bcrypt.hash(password, 10);
-      
-      // User အသစ်ဆောက်မယ်
       const newUser = new User({
         username,
         password: hashedPassword,
@@ -75,9 +67,7 @@ io.on("connection", (socket) => {
         friends: []
       });
       
-      // Database ထဲ သိမ်းမယ်
       await newUser.save();
-      
       socket.emit("reg_success", "Account created successfully! Please Login.");
     } catch (err) {
       console.error("Register Error:", err);
@@ -89,7 +79,7 @@ io.on("connection", (socket) => {
   socket.on("login", async ({ username, password }) => {
     const now = Date.now();
 
-    // Lock Logic (အကြိမ်ရေများရင် ပိတ်မယ်)
+    // Lock Logic
     if (loginAttempts[username]) {
         const attempt = loginAttempts[username];
         if (attempt.lockUntil && attempt.lockUntil > now) {
@@ -103,17 +93,13 @@ io.on("connection", (socket) => {
     }
 
     try {
-      // Database ထဲက User ကို ရှာမယ်
       const user = await User.findOne({ username });
-
       if (!user) {
         socket.emit("login_error", "Login ID not found.");
         return;
       }
 
-      // Password တိုက်စစ်မယ်
       const isMatch = await bcrypt.compare(password, user.password);
-
       if (!isMatch) {
         if (!loginAttempts[username]) {
             loginAttempts[username] = { count: 0, lockUntil: null };
@@ -137,7 +123,6 @@ io.on("connection", (socket) => {
       socket.username = username;
       socket.displayName = user.displayName;
 
-      // Friend List ပြန်ယူမယ်
       const friendDetails = await User.find({ username: { $in: user.friends } });
       const friendsData = friendDetails.map(f => ({
           username: f.username,
@@ -180,10 +165,9 @@ io.on("connection", (socket) => {
       if(!targetUser) return;
 
       const me = await User.findOne({ username: socket.username });
-      // သူငယ်ချင်း စာရင်းထဲ မရှိမှ ထည့်မယ်
       if(!me.friends.includes(targetId)) {
           me.friends.push(targetId);
-          await me.save(); // Save to Database
+          await me.save();
 
           socket.emit("friend_added", { 
               username: targetId, 
@@ -198,7 +182,6 @@ io.on("connection", (socket) => {
   socket.on("remove_friend", async (targetId) => {
     if(!socket.username) return;
     try {
-      // Database ထဲကနေ ဆွဲထုတ်မယ် ($pull)
       await User.updateOne(
         { username: socket.username }, 
         { $pull: { friends: targetId } }
@@ -212,7 +195,6 @@ io.on("connection", (socket) => {
   socket.on("change_display_name", async (newName) => {
     if (!socket.username || !newName.trim()) return;
     try {
-      // Database update
       await User.updateOne({ username: socket.username }, { displayName: newName });
       
       if (onlineUsers[socket.username]) onlineUsers[socket.username].displayName = newName;
@@ -222,7 +204,7 @@ io.on("connection", (socket) => {
     } catch(e) { console.error(e); }
   });
 
-  // --- TYPING & MESSAGING (Socket only - No DB save needed for chat yet) ---
+  // --- MESSAGING ---
   socket.on("typing", (data) => {
       if(!data.to) return;
       const recipient = onlineUsers[data.to];
