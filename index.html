@@ -530,7 +530,8 @@
             onlineUserList.forEach(u => {
                 if (u.username !== myUsername) {
                     if (!myFriends.some(f => f.username === u.username)) {
-                        list.appendChild(createListItem(u, true, false)); 
+                        // Change here: pass TRUE instead of FALSE for showStatus
+                        list.appendChild(createListItem(u, true, true)); 
                     }
                 }
             });
@@ -570,7 +571,7 @@
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         function showLogoutConfirm() { document.getElementById('modal-logout').style.display = 'flex'; }
         
-        // --- LOGOUT LOGIC UPDATE ---
+        // --- LOGOUT LOGIC ---
         function confirmLogout() { 
             // 1. Delete credentials
             localStorage.removeItem('temp_user'); 
