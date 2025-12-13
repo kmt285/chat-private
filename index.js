@@ -12,11 +12,15 @@ require('dotenv').config();
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/chat-app";
 const port = process.env.PORT || 3000;
 
-// *** VAPID KEYS FOR PUSH NOTIFICATIONS (REPLACE THESE!) ***
-const publicVapidKey = 'BN5XwzgTuIRJZY97S70niZy5mFHWUxwnhSE0Bn6AenEl3txRgfBhK2uw7mXwZhemltKDSpYuTArRTALoa_PsI_k';
-const privateVapidKey = '4R_AN0n08ogjV-4pdoOLnx_Mm4__qUZuvYiCbfyFohc';
+// VAPID KEYS (Render Environment Variable မှ ယူပါမည်)
+const publicVapidKey = process.env.PUBLIC_VAPID_KEY;
+const privateVapidKey = process.env.PRIVATE_VAPID_KEY;
 
-webpush.setVapidDetails('mailto:admin@example.com', publicVapidKey, privateVapidKey);
+if (publicVapidKey && privateVapidKey) {
+    webpush.setVapidDetails('mailto:admin@example.com', publicVapidKey, privateVapidKey);
+} else {
+    console.log("⚠️ VAPID Keys not found in Environment Variables");
+}
 
 app.use(bodyParser.json());
 app.use(express.static(__dirname));
@@ -32,7 +36,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   displayName: String,
   friends: [String],
-  lastSeen: { type: Date, default: Date.now } // NEW: Last Seen
+  lastSeen: { type: Date, default: Date.now }
 });
 const User = mongoose.model("User", userSchema);
 
@@ -61,7 +65,6 @@ const ArchivedMessage = mongoose.model("ArchivedMessage", archiveSchema);
 // --- ROUTES ---
 app.get("/", (req, res) => { res.sendFile(__dirname + "/index.html"); });
 
-// Push Subscription Route
 app.post('/subscribe', async (req, res) => {
   const { username, subscription } = req.body;
   if(!username || !subscription) return res.status(400).json({});
@@ -73,7 +76,6 @@ let onlineUsers = {};
 let loginAttempts = {}; 
 
 io.on("connection", (socket) => {
-  // --- AUTH ---
   socket.on("register", async ({ username, password, displayName }) => {
     if(!username || !password || !displayName) return;
     const usernameRegex = /^[a-z0-9]+$/;
@@ -93,20 +95,17 @@ io.on("connection", (socket) => {
         return socket.emit("login_error", "Invalid Credentials");
       }
 
-      // Update Online Status
       onlineUsers[username] = { socketId: socket.id, displayName: user.displayName };
       socket.username = username;
       socket.displayName = user.displayName;
       
-      // Update Last Seen to NOW (since they just logged in)
       await User.updateOne({ username }, { lastSeen: new Date() });
 
-      // Fetch Friends with Last Seen Data
       const friends = await User.find({ username: { $in: user.friends } });
       const friendsData = friends.map(f => ({ 
           username: f.username, 
           displayName: f.displayName,
-          lastSeen: f.lastSeen // Send Last Seen to frontend
+          lastSeen: f.lastSeen 
       }));
 
       socket.emit("login_success", { 
@@ -116,7 +115,6 @@ io.on("connection", (socket) => {
       });
       broadcastUserList();
 
-      // Pending Messages
       const pendings = await PendingMessage.find({ toUser: username });
       if (pendings.length > 0) {
         for (const msg of pendings) {
@@ -131,7 +129,6 @@ io.on("connection", (socket) => {
     } catch (e) { console.error(e); }
   });
 
-  // --- MESSAGING ---
   socket.on("private message", async (data) => {
     if (!data.to || ((!data.msg || !data.msg.trim()) && !data.image)) return;
 
@@ -143,19 +140,17 @@ io.on("connection", (socket) => {
     };
 
     try {
-        await new ArchivedMessage(msgData).save(); // Archive
-        socket.emit("private message", { ...msgData, from: "Me" }); // Echo to self
+        await new ArchivedMessage(msgData).save();
+        socket.emit("private message", { ...msgData, from: "Me" });
 
         const recipient = onlineUsers[data.to];
         if (recipient) {
             io.to(recipient.socketId).emit("private message", msgData);
         } else {
-            // Offline: Save Pending & Send Push Notification
             await new PendingMessage(msgData).save();
             
-            // SEND PUSH NOTIFICATION
             const sub = await Subscription.findOne({ username: data.to });
-            if(sub && sub.payload) {
+            if(sub && sub.payload && publicVapidKey) {
                 const payload = JSON.stringify({
                     title: `${socket.displayName}`,
                     body: data.type === 'image' ? "Sent a photo 📷" : data.msg,
@@ -167,7 +162,6 @@ io.on("connection", (socket) => {
     } catch (err) { console.error(err); }
   });
 
-  // --- HELPERS ---
   socket.on("search_user", async (q) => {
       const u = await User.findOne({ username: q });
       socket.emit("search_result", u ? { found:true, username:u.username, displayName:u.displayName } : { found:false });
@@ -192,9 +186,15 @@ io.on("connection", (socket) => {
       broadcastUserList();
   });
 
+  socket.on("typing", (data) => {
+      if(data.to && onlineUsers[data.to]) io.to(onlineUsers[data.to].socketId).emit("display_typing", { from: socket.username });
+  });
+  socket.on("stop_typing", (data) => {
+      if(data.to && onlineUsers[data.to]) io.to(onlineUsers[data.to].socketId).emit("hide_typing", { from: socket.username });
+  });
+
   socket.on("disconnect", async () => {
     if (socket.username) { 
-        // Update Last Seen on Disconnect
         await User.updateOne({ username: socket.username }, { lastSeen: new Date() });
         delete onlineUsers[socket.username]; 
         broadcastUserList(); 
@@ -204,4 +204,9 @@ io.on("connection", (socket) => {
   function broadcastUserList() {
     io.emit("update user list", Object.keys(onlineUsers).map(u => ({ username: u, displayName: onlineUsers[u].displayName })));
   }
+});
+
+// START SERVER (Moved outside DB connection to fix Render Timeout)
+http.listen(port, () => {
+  console.log("🚀 Server running on port " + port);
 });
