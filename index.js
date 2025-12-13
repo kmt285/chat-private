@@ -13,8 +13,8 @@ const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/chat-app";
 const port = process.env.PORT || 3000;
 
 // *** VAPID KEYS FOR PUSH NOTIFICATIONS (REPLACE THESE!) ***
-const publicVapidKey = 'YOUR_PUBLIC_KEY_HERE';
-const privateVapidKey = 'YOUR_PRIVATE_KEY_HERE';
+const publicVapidKey = 'BN5XwzgTuIRJZY97S70niZy5mFHWUxwnhSE0Bn6AenEl3txRgfBhK2uw7mXwZhemltKDSpYuTArRTALoa_PsI_k';
+const privateVapidKey = '4R_AN0n08ogjV-4pdoOLnx_Mm4__qUZuvYiCbfyFohc';
 
 webpush.setVapidDetails('mailto:admin@example.com', publicVapidKey, privateVapidKey);
 
