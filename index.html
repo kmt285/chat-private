@@ -8,87 +8,41 @@
     <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     
     <style>
-        /* --- CSS VARIABLES --- */
+        /* --- CSS VARIABLES (UNCHANGED) --- */
         :root {
-            /* DEFAULT (Light Theme) */
             --font-family: 'Inter', sans-serif;
-            --bg-body: #ffffff;
-            --bg-sidebar: #ffffff;
-            --bg-chat: #ffffff;
-            --bg-input: #f1f2f6;
-            --bg-hover: #f5f5f5;
-            --bg-active: #eef7ff;
-            --text-primary: #1a1a1a;
-            --text-secondary: #666666;
-            --text-muted: #888888;
-            --border-color: #f1f1f1;
-            --border-input: #ddd;
-            
-            --accent-color: #0084ff;
-            --accent-text: #ffffff;
-            --danger-color: #ff4757;
-            --success-color: #10b981;
-            
-            --msg-sent-bg: #0084ff;
-            --msg-sent-text: #ffffff;
-            --msg-rcv-bg: #f1f2f6;
-            --msg-rcv-text: #111111;
-            
+            --bg-body: #ffffff; --bg-sidebar: #ffffff; --bg-chat: #ffffff;
+            --bg-input: #f1f2f6; --bg-hover: #f5f5f5; --bg-active: #eef7ff;
+            --text-primary: #1a1a1a; --text-secondary: #666666; --text-muted: #888888;
+            --border-color: #f1f1f1; --border-input: #ddd;
+            --accent-color: #0084ff; --accent-text: #ffffff;
+            --danger-color: #ff4757; --success-color: #10b981;
+            --msg-sent-bg: #0084ff; --msg-sent-text: #ffffff;
+            --msg-rcv-bg: #f1f2f6; --msg-rcv-text: #111111;
             --shadow-card: 0 4px 20px rgba(0,0,0,0.05);
-            --radius-main: 12px;
-            --radius-bubble: 18px;
-            
-            --grid-image: none;
-            --btn-shape: 8px;
+            --radius-main: 12px; --radius-bubble: 18px;
+            --grid-image: none; --btn-shape: 8px;
         }
 
-        /* HACKER / DARK THEME */
         [data-theme="hacker"] {
             --font-family: 'Courier Prime', monospace;
-            --bg-body: #050505;
-            --bg-sidebar: #0a0a0a;
-            --bg-chat: #000000;
-            --bg-input: #000000;
-            --bg-hover: #111111;
-            --bg-active: #1a1a1a;
-            
-            --text-primary: #00ff41; /* Matrix Green */
-            --text-secondary: #008f11;
-            --text-muted: #005500;
-            
-            --border-color: #333333;
-            --border-input: #333333;
-            
-            --accent-color: #ffb000; /* Amber/Yellow */
-            --accent-text: #000000;
-            --danger-color: #ff3333;   /* Bright Red for Offline */
-            --success-color: #00ff41;  /* Green for Online */
-
-            --msg-sent-bg: transparent;
-            --msg-sent-text: #ffb000;
-            --msg-rcv-bg: transparent;
-            --msg-rcv-text: #00ff41;
-
+            --bg-body: #050505; --bg-sidebar: #0a0a0a; --bg-chat: #000000;
+            --bg-input: #000000; --bg-hover: #111111; --bg-active: #1a1a1a;
+            --text-primary: #00ff41; --text-secondary: #008f11; --text-muted: #005500;
+            --border-color: #333333; --border-input: #333333;
+            --accent-color: #ffb000; --accent-text: #000000;
+            --danger-color: #ff3333; --success-color: #00ff41;
+            --msg-sent-bg: transparent; --msg-sent-text: #ffb000;
+            --msg-rcv-bg: transparent; --msg-rcv-text: #00ff41;
             --shadow-card: 0 0 15px rgba(0, 255, 65, 0.1);
-            --radius-main: 0px;
-            --radius-bubble: 0px;
-            
-            --grid-image: radial-gradient(#222 1px, transparent 1px);
-            --btn-shape: 0px;
+            --radius-main: 0px; --radius-bubble: 0px;
+            --grid-image: radial-gradient(#222 1px, transparent 1px); --btn-shape: 0px;
         }
 
-        /* --- GLOBAL RESET --- */
+        /* --- STYLES (UNCHANGED) --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-family); -webkit-tap-highlight-color: transparent; }
-        body { 
-            background-color: var(--bg-body); 
-            background-image: var(--grid-image); 
-            background-size: 20px 20px;
-            height: 100dvh; width: 100%; display: flex; overflow: hidden; 
-            color: var(--text-primary); position: fixed; top: 0; left: 0; overscroll-behavior: none; 
-            transition: background 0.3s, color 0.3s;
-        }
+        body { background-color: var(--bg-body); background-image: var(--grid-image); background-size: 20px 20px; height: 100dvh; width: 100%; display: flex; overflow: hidden; color: var(--text-primary); position: fixed; top: 0; left: 0; overscroll-behavior: none; transition: background 0.3s, color 0.3s; }
 
-        /* --- LOADING & AUTH --- */
         #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-body); z-index: 5000; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.3s; }
         .spinner { width: 30px; height: 30px; border: 3px solid var(--border-color); border-top: 3px solid var(--accent-color); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         [data-theme="hacker"] .spinner { border-radius: 0; border: 2px solid var(--text-secondary); border-top: 2px solid var(--accent-color); }
@@ -97,60 +51,37 @@
         #auth-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-input); z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 10vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         [data-theme="hacker"] #auth-screen { background: var(--bg-body); background-image: var(--grid-image); background-size: 20px 20px; }
 
-        /* Login Theme Switcher */
         .login-theme-switch { position: absolute; top: 20px; right: 20px; background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 10px; z-index: 3001; }
         .login-theme-switch:hover { color: var(--accent-color); }
 
         .auth-box { background: var(--bg-sidebar); padding: 30px 25px; border-radius: var(--radius-main); box-shadow: var(--shadow-card); width: 90%; max-width: 350px; text-align: center; border: 1px solid var(--border-color); flex-shrink: 0; margin-bottom: 50px; }
         [data-theme="hacker"] .auth-box { border: 1px solid var(--accent-color); box-shadow: 0 0 15px rgba(255, 176, 0, 0.2); }
-        
         .auth-box h2 { margin-bottom: 8px; color: var(--text-primary); font-size: 20px; }
         [data-theme="hacker"] .auth-box h2::before { content: "ROOT@SYSTEM:~# "; color: var(--text-secondary); font-size: 0.7em; display: block; margin-bottom: 5px; }
-        
         .auth-sub { color: var(--text-secondary); font-size: 13px; margin-bottom: 25px; }
         .input-group { margin-bottom: 15px; text-align: left; }
         .input-label { display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px; margin-left: 2px; }
-        
         .auth-box input { width: 100%; padding: 12px; border: 1px solid var(--border-input); border-radius: 8px; outline: none; background: var(--bg-chat); font-size: 15px; color: var(--text-primary); }
         [data-theme="hacker"] .auth-box input { border-radius: 0; border-color: #333; }
         .auth-box input:focus { border-color: var(--accent-color); }
-        
         .auth-box button { width: 100%; padding: 12px; background: var(--accent-color); color: var(--accent-text); border: none; border-radius: var(--btn-shape); font-weight: 600; cursor: pointer; font-size: 15px; margin-top: 10px; }
-        
         .toggle-link { margin-top: 20px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
         .toggle-link span { color: var(--accent-color); font-weight: 600; }
         .status-msg { margin-bottom: 15px; padding: 10px; border-radius: 6px; font-size: 13px; display: none; text-align: center; }
         .error { background-color: rgba(255, 71, 87, 0.1); color: var(--danger-color); }
         .success { background-color: rgba(16, 185, 129, 0.1); color: var(--success-color); }
 
-        /* --- SIDEBAR --- */
         #app-container { display: none; width: 100%; height: 100%; flex-direction: row; overflow: hidden; }
         #sidebar { width: 320px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; height: 100%; z-index: 10; flex-shrink: 0; }
-
         .profile-header { padding: 15px 20px; padding-top: max(15px, env(safe-area-inset-top)); background: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; min-height: 60px; flex-shrink: 0; }
         .my-info-wrap { display: flex; align-items: center; gap: 12px; flex: 1; overflow: hidden; }
-        
         .avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 600; color: white; flex-shrink: 0; text-transform: uppercase; font-size: 16px; position: relative; }
         [data-theme="hacker"] .avatar { border-radius: 0; border: 1px solid var(--accent-color); background: transparent !important; color: var(--accent-color); }
-        
-        /* THEME SPECIFIC: $ Sign for Self Profile in Hacker Theme */
-        [data-theme="hacker"] .profile-header .avatar::after {
-            content: "$";
-            position: absolute;
-            bottom: -5px;
-            right: -5px;
-            background: var(--bg-sidebar);
-            color: var(--accent-color);
-            font-size: 14px;
-            font-weight: bold;
-            padding: 0 2px;
-        }
-
+        [data-theme="hacker"] .profile-header .avatar::after { content: "$"; position: absolute; bottom: -5px; right: -5px; background: var(--bg-sidebar); color: var(--accent-color); font-size: 14px; font-weight: bold; padding: 0 2px; }
         .my-name-container { display: flex; flex-direction: column; min-width: 0; justify-content: center; }
         .my-name-text { font-weight: 600; font-size: 16px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .edit-icon { font-size: 12px; color: var(--text-muted); }
         .user-id-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; font-family: monospace; letter-spacing: -0.5px; }
-
         .header-btn-group { display: flex; align-items: center; gap: 5px; }
         .logout-btn, .theme-btn { background: none; border: none; color: var(--danger-color); cursor: pointer; padding: 8px; font-size: 14px; display: flex; align-items: center; transition: color 0.2s; }
         .theme-btn { color: var(--text-secondary); }
@@ -164,7 +95,6 @@
 
         .section-label { padding: 15px 20px 5px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; display: flex; justify-content: space-between; }
         [data-theme="hacker"] .section-label::before { content: "> "; color: var(--accent-color); margin-right: 5px; }
-        
         .user-lists-container { flex: 1; overflow-y: auto; padding: 0 10px 10px; }
         .list-group { margin-bottom: 15px; }
         .user-item { padding: 10px 12px; margin-bottom: 2px; display: flex; align-items: center; cursor: pointer; border-radius: 8px; border-left: 3px solid transparent; }
@@ -173,40 +103,29 @@
         .user-item.active { background: var(--bg-active); }
         [data-theme="hacker"] .user-item.active { background: #111; border-left-color: var(--accent-color); }
         [data-theme="hacker"] .user-item.active .user-name { color: var(--accent-color); }
-
         .user-info-col { flex: 1; margin-left: 12px; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
         .user-name { font-size: 15px; color: var(--text-primary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* --- STATUS INDICATORS --- */
-        /* Light Theme: Dot */
         .status-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--bg-sidebar); position: absolute; bottom: 0; right: 0; }
         .is-online { background-color: var(--success-color); }
         .is-offline { background-color: var(--text-muted); }
-        
-        /* Hacker Theme: No Dot, Show Text */
         [data-theme="hacker"] .status-dot { display: none; }
-        
         .status-text { font-size: 10px; margin-left: auto; color: var(--text-muted); display: none; } 
         [data-theme="hacker"] .status-text { display: block; font-weight: bold; font-family: monospace; }
-        
-        [data-theme="hacker"] .status-text.on { color: var(--success-color); } /* Green Online */
-        [data-theme="hacker"] .status-text.off { color: var(--danger-color); } /* Red Offline */
-
+        [data-theme="hacker"] .status-text.on { color: var(--success-color); }
+        [data-theme="hacker"] .status-text.off { color: var(--danger-color); }
         .badge { background: var(--danger-color); color: white; font-size: 10px; height: 18px; min-width: 18px; padding: 0 5px; border-radius: 9px; font-weight: 600; display: none; align-items: center; justify-content: center; margin-left: 8px; }
         .user-item.has-unread .badge { display: flex; }
         [data-theme="hacker"] .badge { border-radius: 0; background: var(--accent-color); color: black; }
 
-        /* --- CHAT AREA --- */
         #chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-chat); position: relative; height: 100%; min-width: 0; overflow: hidden; }
         #empty-state { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--text-muted); padding: 20px; }
         #chat-container { display: none; flex-direction: column; height: 100%; width: 100%; overflow: hidden; }
-        
         .chat-header { background: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; flex-shrink: 0; justify-content: space-between; padding: 10px 15px; padding-top: max(10px, env(safe-area-inset-top)); min-height: 60px; z-index: 20; }
         .header-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
         .back-btn { display: none; background: none; border: none; font-size: 22px; color: var(--text-primary); cursor: pointer; padding: 0 5px; }
         .header-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 600; color: white; font-size: 14px; flex-shrink: 0; position: relative; }
         [data-theme="hacker"] .header-avatar { border-radius: 0; border: 1px solid var(--accent-color); background: transparent !important; color: var(--accent-color); }
-
         .chat-name-col { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
         .chat-user-name { font-weight: 600; font-size: 16px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .typing-indicator { font-size: 11px; color: var(--accent-color); font-weight: 500; margin-left: 10px; display: none; animation: pulse 1.5s infinite; }
@@ -227,7 +146,6 @@
         .sent { justify-content: flex-end; }
         .received { justify-content: flex-start; }
         .bubble { max-width: 75%; padding: 10px 14px; border-radius: var(--radius-bubble); font-size: 15px; position: relative; word-wrap: break-word; line-height: 1.4; user-select: none; }
-        
         [data-theme="hacker"] .bubble { border-radius: 0; padding: 5px 0; max-width: 90%; background: transparent !important; }
         [data-theme="hacker"] .sent .bubble { text-align: right; border-bottom: none; }
         [data-theme="hacker"] .received .bubble { text-align: left; border-bottom: none; }
@@ -257,10 +175,7 @@
         [data-theme="hacker"] .icon-btn { color: var(--text-secondary); }
         .input-wrapper { flex: 1; background: var(--bg-input); border-radius: 20px; display: flex; align-items: center; padding: 8px 15px; min-width: 0; }
         [data-theme="hacker"] .input-wrapper { background: transparent; border: none; padding: 0; border-radius: 0; }
-        
-        /* FIX: Standard Textbox, removed 'password-like' attributes */
         .input-area input { flex: 1; background: transparent; border: none; outline: none; font-size: 15px; color: var(--text-primary); min-width: 0; }
-        
         .emoji-btn { cursor: pointer; font-size: 18px; padding: 5px; color: var(--text-secondary); margin-left: 5px; opacity: 0.7; transition: opacity 0.2s; }
         .emoji-btn:hover { opacity: 1; }
         .send-btn { background: var(--accent-color); color: var(--accent-text); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; flex-shrink: 0; }
@@ -442,7 +357,7 @@
                     <button type="button" class="icon-btn" onclick="document.getElementById('file-input').click()">
                         <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     </button>
-                    <input type="file" id="file-input" accept="image/*" hidden onchange="sendImage()" onclick="this.value=null;">
+                    <input type="file" id="file-input" accept="image/*" hidden onchange="uploadAndSendImage()" onclick="this.value=null;">
 
                     <div class="input-wrapper">
                         <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" oninput="handleTyping()">
@@ -512,7 +427,11 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // --- THEME LOGIC ---
+        // --- CLOUDINARY CONFIG (REPLACE THIS WITH YOUR CLOUD NAME) ---
+        const CLOUD_NAME = "dywshmmy1"; 
+        const UPLOAD_PRESET = "privatechat"; 
+
+        // --- THEME ---
         function toggleTheme() {
             const body = document.body;
             const current = body.getAttribute('data-theme');
@@ -525,10 +444,10 @@
             document.body.setAttribute('data-theme', t);
         })();
 
-        // --- ORIGINAL JS ---
+        // --- CORE VARS ---
         const socket = io();
         let myUsername = "", myDisplayName = "", activeChatUser = null;
-        let conversations = {};
+        let conversations = JSON.parse(localStorage.getItem('chat_history') || '{}');
         let unreadCounts = {};
         let myFriends = [];
         let onlineUserList = []; 
@@ -546,11 +465,9 @@
 
         function toggleEmojiPicker() { const p = document.querySelector('emoji-picker'); p.style.display = p.style.display === 'block' ? 'none' : 'block'; }
         
-        // FIX: Removed .focus() to prevent keyboard popping loop on mobile
         document.querySelector('emoji-picker').addEventListener('emoji-click', e => { 
             const input = document.getElementById('message-input');
             input.value += e.detail.unicode; 
-            // input.focus();  <-- Removed this line to fix keyboard glitch
         });
         
         document.addEventListener('click', e => { const p=document.querySelector('emoji-picker'); const b=document.querySelector('.emoji-btn'); if(p.style.display==='block' && !p.contains(e.target) && !b.contains(e.target)) p.style.display='none'; });
@@ -615,13 +532,19 @@
             myUsername = data.username;
             myDisplayName = data.displayName;
             myFriends = data.friends || [];
+            
+            // Load history from local storage
+            const savedHistory = localStorage.getItem('chat_history_'+myUsername);
+            if(savedHistory) conversations = JSON.parse(savedHistory);
+            else conversations = {};
+
             const loader = document.getElementById('loading-screen');
             loader.style.opacity = '0';
             setTimeout(() => loader.style.display = 'none', 300);
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('app-container').style.display = 'flex';
             updateMyProfileUI();
-            loadHistory();
+            // No loadHistory() call here, we loaded from localStorage above
         });
 
         function updateMyProfileUI() {
@@ -742,7 +665,7 @@
         function confirmLogout() { 
             localStorage.removeItem('temp_user'); 
             localStorage.removeItem('temp_pass'); 
-            if(myUsername) { localStorage.removeItem('chat_history_' + myUsername); }
+            // Do NOT clear history from localStorage here to keep it on device
             location.reload(); 
         }
 
@@ -751,7 +674,7 @@
         socket.on('name_changed_success', (n) => { myDisplayName = n; updateMyProfileUI(); showToast("Name updated!"); });
 
         function saveHistory() { if(myUsername) localStorage.setItem('chat_history_'+myUsername, JSON.stringify(conversations)); }
-        function loadHistory() { if(myUsername) { const d = localStorage.getItem('chat_history_'+myUsername); if(d) conversations = JSON.parse(d); } }
+        
         function showDeleteConfirm() { if(activeChatUser) document.getElementById('modal-delete-chat').style.display = 'flex'; }
         function confirmDeleteChat() { if(activeChatUser) { delete conversations[activeChatUser]; saveHistory(); renderMessages(); closeModal('modal-delete-chat'); showToast("History deleted"); } }
         
@@ -798,9 +721,42 @@
                 input.value = ""; input.focus(); cancelReply(); scrollToBottom();
             }
         }
-        function sendImage() {
-            const f = document.getElementById('file-input').files[0];
-            if(f && activeChatUser) { const r = new FileReader(); r.onload = (e) => socket.emit('private message', { to: activeChatUser, image: e.target.result, type: 'image' }); r.readAsDataURL(f); }
+        
+        // --- NEW: CLOUDINARY UPLOAD FUNCTION ---
+        async function uploadAndSendImage() {
+            const file = document.getElementById('file-input').files[0];
+            if(!file || !activeChatUser) return;
+
+            showToast("Uploading Image...");
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('upload_preset', UPLOAD_PRESET);
+
+            try {
+                // Upload to Cloudinary
+                const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+                    method: 'POST',
+                    body: fd
+                });
+                const data = await res.json();
+                
+                if(data.secure_url) {
+                    // Send URL via Socket
+                    socket.emit('private message', { 
+                        to: activeChatUser, 
+                        image: data.secure_url, 
+                        type: 'image' 
+                    });
+                } else {
+                    showToast("Upload Failed");
+                    console.error(data);
+                }
+            } catch(e) { 
+                showToast("Error Uploading"); 
+                console.error(e);
+            }
+            // Reset input
+            document.getElementById('file-input').value = null;
         }
 
         socket.on('msg_failed', (data) => {
