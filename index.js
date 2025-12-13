@@ -56,6 +56,8 @@ const ArchivedMessage = mongoose.model("ArchivedMessage", archiveSchema);
 
 app.get("/", (req, res) => { res.sendFile(__dirname + "/index.html"); });
 
+app.use(express.static(__dirname));
+
 let onlineUsers = {}; 
 let loginAttempts = {}; 
 
