@@ -4,237 +4,204 @@ const http = require("http").createServer(app);
 const io = require("socket.io")(http, { maxHttpBufferSize: 1e7 }); 
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const webpush = require('web-push');
+const bodyParser = require('body-parser');
 require('dotenv').config();
 
-// --- DATABASE CONNECTION SETUP ---
+// --- CONFIGURATION ---
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/chat-app";
 const port = process.env.PORT || 3000;
 
+// *** VAPID KEYS FOR PUSH NOTIFICATIONS (REPLACE THESE!) ***
+const publicVapidKey = 'YOUR_PUBLIC_KEY_HERE';
+const privateVapidKey = 'YOUR_PRIVATE_KEY_HERE';
+
+webpush.setVapidDetails('mailto:admin@example.com', publicVapidKey, privateVapidKey);
+
+app.use(bodyParser.json());
+app.use(express.static(__dirname));
+
 mongoose.set('strictQuery', false);
-
-console.log("⏳ Connecting to MongoDB...");
-
 mongoose.connect(MONGO_URI)
-  .then(() => {
-    console.log("✅ Connected to MongoDB Successfully!");
-    http.listen(port, () => {
-      console.log("🚀 Server running on port " + port);
-    });
-  })
-  .catch(err => {
-    console.error("❌ MongoDB Connection Error:", err);
-  });
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch(err => console.error("❌ DB Error:", err));
 
-// --- USER SCHEMA ---
+// --- SCHEMAS ---
 const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   password: { type: String, required: true },
   displayName: String,
-  friends: [String]
+  friends: [String],
+  lastSeen: { type: Date, default: Date.now } // NEW: Last Seen
 });
 const User = mongoose.model("User", userSchema);
 
-// --- 1. PENDING MESSAGES (Offline & Auto Delete) ---
-// Offline User တွေအတွက် ယာယီသိမ်းမည့်နေရာ
+const subSchema = new mongoose.Schema({
+  username: String,
+  payload: Object
+});
+const Subscription = mongoose.model("Subscription", subSchema);
+
 const pendingSchema = new mongoose.Schema({
   from: String, fromName: String, toUser: String,
   msg: String, type: String, image: String, replyTo: Object,
   timestamp: String,
-  createdAt: { type: Date, default: Date.now, expires: 604800 } // 7 Days TTL
+  createdAt: { type: Date, default: Date.now, expires: 604800 } 
 });
 const PendingMessage = mongoose.model("PendingMessage", pendingSchema);
 
-// --- 2. ARCHIVED MESSAGES (Permanent Backup) ---
-// Admin ကြည့်ဖို့ (သို့) Backup အတွက် သီးသန့် (User ဆီ ပြန်မပို့)
 const archiveSchema = new mongoose.Schema({
   from: String, fromName: String, toUser: String,
   msg: String, type: String, image: String, replyTo: Object,
   timestamp: String,
-  createdAt: { type: Date, default: Date.now } // No Expiry
+  createdAt: { type: Date, default: Date.now }
 });
 const ArchivedMessage = mongoose.model("ArchivedMessage", archiveSchema);
 
+// --- ROUTES ---
 app.get("/", (req, res) => { res.sendFile(__dirname + "/index.html"); });
 
-app.use(express.static(__dirname));
+// Push Subscription Route
+app.post('/subscribe', async (req, res) => {
+  const { username, subscription } = req.body;
+  if(!username || !subscription) return res.status(400).json({});
+  await Subscription.findOneAndUpdate({ username }, { payload: subscription }, { upsert: true, new: true });
+  res.status(201).json({});
+});
 
 let onlineUsers = {}; 
 let loginAttempts = {}; 
 
 io.on("connection", (socket) => {
-  console.log("Connected: " + socket.id);
-
-  // --- REGISTER ---
+  // --- AUTH ---
   socket.on("register", async ({ username, password, displayName }) => {
     if(!username || !password || !displayName) return;
     const usernameRegex = /^[a-z0-9]+$/;
-    if (!usernameRegex.test(username)) {
-        socket.emit("reg_error", "Login ID must be lowercase letters and numbers only.");
-        return;
-    }
+    if (!usernameRegex.test(username)) return socket.emit("reg_error", "User ID must be lowercase letters/numbers only.");
     try {
-      const existingUser = await User.findOne({ username });
-      if (existingUser) { socket.emit("reg_error", "Login ID already taken!"); return; }
+      if(await User.findOne({ username })) return socket.emit("reg_error", "ID Taken");
       const hashedPassword = await bcrypt.hash(password, 10);
-      const newUser = new User({ username, password: hashedPassword, displayName, friends: [] });
-      await newUser.save();
-      socket.emit("reg_success", "Account created successfully! Please Login.");
-    } catch (err) { console.error("Register Error:", err); socket.emit("reg_error", "Server error."); }
+      await new User({ username, password: hashedPassword, displayName, friends: [], lastSeen: new Date() }).save();
+      socket.emit("reg_success", "Account Created!");
+    } catch (e) { socket.emit("reg_error", "Server Error"); }
   });
 
-  // --- LOGIN ---
   socket.on("login", async ({ username, password }) => {
-    const now = Date.now();
-    if (loginAttempts[username]) {
-        const attempt = loginAttempts[username];
-        if (attempt.lockUntil && attempt.lockUntil > now) {
-            const secondsLeft = Math.ceil((attempt.lockUntil - now) / 1000);
-            socket.emit("login_error", `Too many attempts! Please wait ${secondsLeft} seconds.`);
-            return;
-        }
-        if (attempt.lockUntil && attempt.lockUntil <= now) delete loginAttempts[username];
-    }
-
     try {
       const user = await User.findOne({ username });
-      if (!user) { socket.emit("login_error", "Login ID not found."); return; }
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        if (!loginAttempts[username]) loginAttempts[username] = { count: 0, lockUntil: null };
-        loginAttempts[username].count++;
-        if (loginAttempts[username].count >= 5) {
-            loginAttempts[username].lockUntil = Date.now() + 60000;
-            socket.emit("login_error", "Too many attempts! Please wait 60 seconds.");
-        } else {
-            const left = 5 - loginAttempts[username].count;
-            socket.emit("login_error", `Incorrect password! (${left} attempts left)`);
-        }
-        return;
+      if (!user || !(await bcrypt.compare(password, user.password))) {
+        return socket.emit("login_error", "Invalid Credentials");
       }
-      if (loginAttempts[username]) delete loginAttempts[username];
 
+      // Update Online Status
       onlineUsers[username] = { socketId: socket.id, displayName: user.displayName };
       socket.username = username;
       socket.displayName = user.displayName;
+      
+      // Update Last Seen to NOW (since they just logged in)
+      await User.updateOne({ username }, { lastSeen: new Date() });
 
-      const friendDetails = await User.find({ username: { $in: user.friends } });
-      const friendsData = friendDetails.map(f => ({ username: f.username, displayName: f.displayName }));
+      // Fetch Friends with Last Seen Data
+      const friends = await User.find({ username: { $in: user.friends } });
+      const friendsData = friends.map(f => ({ 
+          username: f.username, 
+          displayName: f.displayName,
+          lastSeen: f.lastSeen // Send Last Seen to frontend
+      }));
 
-      socket.emit("login_success", { username, displayName: user.displayName, friends: friendsData });
+      socket.emit("login_success", { 
+          username, 
+          displayName: user.displayName, 
+          friends: friendsData 
+      });
       broadcastUserList();
 
-      // --- OFFLINE MESSAGES DELIVERY (FROM PENDING ONLY) ---
-      // Login ဝင်လာရင် Pending ထဲက စာတွေကိုပဲ ပို့မယ် (Archive ကို မပို့ဘူး)
-      const pendingMessages = await PendingMessage.find({ toUser: username });
-      
-      if (pendingMessages.length > 0) {
-        for (const msg of pendingMessages) {
+      // Pending Messages
+      const pendings = await PendingMessage.find({ toUser: username });
+      if (pendings.length > 0) {
+        for (const msg of pendings) {
             socket.emit("private message", {
                 from: msg.from, fromName: msg.fromName, toUser: msg.toUser,
-                msg: msg.msg, type: msg.type, image: msg.image, replyTo: msg.replyTo, timestamp: msg.timestamp
+                msg: msg.msg, type: msg.type, image: msg.image, 
+                replyTo: msg.replyTo, timestamp: msg.timestamp
             });
-            // ပို့ပြီးတာနဲ့ Pending Database ထဲက ချက်ချင်းဖျက်မယ်
-            await PendingMessage.deleteOne({ _id: msg._id });
+            await PendingMessage.deleteOne({ _id: msg._id }); 
         }
       }
-
-    } catch (err) { console.error("Login Error:", err); socket.emit("login_error", "Server error."); }
-  });
-
-  // --- SEARCH & FRIENDS ---
-  socket.on("search_user", async (queryId) => {
-    try {
-      const user = await User.findOne({ username: queryId });
-      socket.emit("search_result", user ? { found: true, username: user.username, displayName: user.displayName } : { found: false });
-    } catch(e) { socket.emit("search_result", { found: false }); }
-  });
-
-  socket.on("add_friend", async (targetId) => {
-    if(!socket.username || targetId === socket.username) return;
-    try {
-      const targetUser = await User.findOne({ username: targetId });
-      if(!targetUser) return;
-      const me = await User.findOne({ username: socket.username });
-      if(!me.friends.includes(targetId)) {
-          me.friends.push(targetId);
-          await me.save();
-          socket.emit("friend_added", { username: targetId, displayName: targetUser.displayName });
-          broadcastUserList(); 
-      }
-    } catch(e) { console.error(e); }
-  });
-
-  socket.on("remove_friend", async (targetId) => {
-    if(!socket.username) return;
-    try {
-      await User.updateOne({ username: socket.username }, { $pull: { friends: targetId } });
-      socket.emit("friend_removed", targetId);
-      broadcastUserList();
-    } catch(e) { console.error(e); }
-  });
-
-  socket.on("change_display_name", async (newName) => {
-    if (!socket.username || !newName.trim()) return;
-    try {
-      await User.updateOne({ username: socket.username }, { displayName: newName });
-      if (onlineUsers[socket.username]) onlineUsers[socket.username].displayName = newName;
-      socket.displayName = newName;
-      socket.emit("name_changed_success", newName);
-      broadcastUserList();
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
   });
 
   // --- MESSAGING ---
-  socket.on("typing", (data) => {
-      if(data.to && onlineUsers[data.to]) io.to(onlineUsers[data.to].socketId).emit("display_typing", { from: socket.username });
-  });
-  socket.on("stop_typing", (data) => {
-      if(data.to && onlineUsers[data.to]) io.to(onlineUsers[data.to].socketId).emit("hide_typing", { from: socket.username });
-  });
-
   socket.on("private message", async (data) => {
-    if (!data || !data.to) return;
-    // Data validation: must have msg OR image
-    if ((!data.msg || !data.msg.trim()) && !data.image) return;
+    if (!data.to || ((!data.msg || !data.msg.trim()) && !data.image)) return;
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
     const msgData = {
         from: socket.username, fromName: socket.displayName, toUser: data.to,
         msg: data.msg || "", type: data.type || 'text', image: data.image || null,
-        replyTo: data.replyTo || null, timestamp: timestamp
+        replyTo: data.replyTo || null, timestamp
     };
 
     try {
-        // 1. Always Save to Archive (Permanent Backup)
-        await new ArchivedMessage(msgData).save();
+        await new ArchivedMessage(msgData).save(); // Archive
+        socket.emit("private message", { ...msgData, from: "Me" }); // Echo to self
 
-        // 2. Delivery Logic
         const recipient = onlineUsers[data.to];
-
-        // Send to Self (Immediate Feedback)
-        socket.emit("private message", { ...msgData, from: "Me" });
-
-        if (recipient && recipient.socketId) {
-            // Online ဖြစ်ရင် Socket ကနေ တန်းပို့မယ် (Pending ထဲ မသိမ်းဘူး)
+        if (recipient) {
             io.to(recipient.socketId).emit("private message", msgData);
         } else {
-            // Offline ဖြစ်နေရင် Pending ထဲ သိမ်းမယ် (၇ ရက်ကျော်ရင် Auto ပျက်မယ်)
+            // Offline: Save Pending & Send Push Notification
             await new PendingMessage(msgData).save();
+            
+            // SEND PUSH NOTIFICATION
+            const sub = await Subscription.findOne({ username: data.to });
+            if(sub && sub.payload) {
+                const payload = JSON.stringify({
+                    title: `${socket.displayName}`,
+                    body: data.type === 'image' ? "Sent a photo 📷" : data.msg,
+                    icon: "icon-192.png"
+                });
+                webpush.sendNotification(sub.payload, payload).catch(e => console.error("Push Error", e));
+            }
         }
+    } catch (err) { console.error(err); }
+  });
 
-    } catch (err) {
-        console.error("Message Error:", err);
-        socket.emit("msg_failed", { to: data.to, msg: "Message not sent." });
+  // --- HELPERS ---
+  socket.on("search_user", async (q) => {
+      const u = await User.findOne({ username: q });
+      socket.emit("search_result", u ? { found:true, username:u.username, displayName:u.displayName } : { found:false });
+  });
+  
+  socket.on("add_friend", async (tid) => {
+      await User.updateOne({ username: socket.username }, { $addToSet: { friends: tid } });
+      const f = await User.findOne({ username: tid });
+      socket.emit("friend_added", { username: f.username, displayName: f.displayName, lastSeen: f.lastSeen });
+  });
+  
+  socket.on("remove_friend", async (tid) => {
+      await User.updateOne({ username: socket.username }, { $pull: { friends: tid } });
+      socket.emit("friend_removed", tid);
+  });
+  
+  socket.on("change_display_name", async (n) => {
+      await User.updateOne({ username: socket.username }, { displayName: n });
+      if(onlineUsers[socket.username]) onlineUsers[socket.username].displayName = n;
+      socket.displayName = n;
+      socket.emit("name_changed_success", n);
+      broadcastUserList();
+  });
+
+  socket.on("disconnect", async () => {
+    if (socket.username) { 
+        // Update Last Seen on Disconnect
+        await User.updateOne({ username: socket.username }, { lastSeen: new Date() });
+        delete onlineUsers[socket.username]; 
+        broadcastUserList(); 
     }
   });
 
-  socket.on("disconnect", () => {
-    if (socket.username) { delete onlineUsers[socket.username]; broadcastUserList(); }
-  });
-
   function broadcastUserList() {
-    const list = Object.keys(onlineUsers).map(u => ({ username: u, displayName: onlineUsers[u].displayName }));
-    io.emit("update user list", list);
+    io.emit("update user list", Object.keys(onlineUsers).map(u => ({ username: u, displayName: onlineUsers[u].displayName })));
   }
 });
