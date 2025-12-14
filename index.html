@@ -123,10 +123,15 @@
         .is-online { background-color: var(--success-color); }
         .is-offline { background-color: var(--text-muted); }
         [data-theme="hacker"] .status-dot { display: none; }
-        .status-text { font-size: 10px; margin-left: auto; color: var(--text-muted); display: none; } 
-        [data-theme="hacker"] .status-text { display: block; font-weight: bold; font-family: monospace; }
-        [data-theme="hacker"] .status-text.on { color: var(--success-color); }
+        
+        /* Updated Status Text CSS */
+        .status-text { font-size: 10px; margin-left: auto; color: var(--text-muted); display: block; max-width: 80px; text-align: right; }
+        [data-theme="hacker"] .status-text { font-weight: bold; font-family: monospace; }
+        .status-text.on { color: var(--success-color); display: none; } /* Only show dot for normal theme online */
+        [data-theme="hacker"] .status-text.on { display: block; }
+        .status-text.off { color: var(--text-muted); }
         [data-theme="hacker"] .status-text.off { color: var(--danger-color); }
+        
         .badge { background: var(--danger-color); color: white; font-size: 10px; height: 18px; min-width: 18px; padding: 0 5px; border-radius: 9px; font-weight: 600; display: none; align-items: center; justify-content: center; margin-left: 8px; }
         .user-item.has-unread .badge { display: flex; }
         [data-theme="hacker"] .badge { border-radius: 0; background: var(--accent-color); color: black; }
@@ -472,6 +477,21 @@
         function escapeHtml(t) { if(!t) return t; return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
         function formatUniqueID(u) { return "pchat@" + u; }
 
+        // --- LAST SEEN FORMATTER (NEW) ---
+        function formatLastSeen(isoDate) {
+            if(!isoDate) return "Offline";
+            const date = new Date(isoDate);
+            const now = new Date();
+            const diffMs = now - date;
+            const oneDayMs = 24 * 60 * 60 * 1000;
+
+            // If older than 24 hours, show default "Offline"
+            if (diffMs > oneDayMs) return "Offline";
+
+            // If within 24 hours, show time
+            return "Last seen " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
         function openImageViewer(src) { document.getElementById('full-image').src = src; document.getElementById('img-viewer').style.display = "flex"; }
         function closeImageViewer() { document.getElementById('img-viewer').style.display = "none"; }
         function showToast(msg) { const t=document.getElementById('toast-box'); document.getElementById('toast-msg').innerText=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3000); }
@@ -557,7 +577,6 @@
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('app-container').style.display = 'flex';
             updateMyProfileUI();
-            // No loadHistory() call here, we loaded from localStorage above
         });
 
         function updateMyProfileUI() {
@@ -571,7 +590,8 @@
         socket.on('update user list', (users) => { onlineUserList = users; renderAllLists(); });
         function renderAllLists() { renderFriends(); renderActiveUsers(); }
 
-        function createListItem(u, isOnline, showStatus) {
+        // UPDATED: Now accepts optional lastSeen
+        function createListItem(u, isOnline, showStatus, lastSeenDate = null) {
             const li = document.createElement('li');
             const isActive = activeChatUser === u.username ? 'active' : '';
             li.className = `user-item ${isActive}`;
@@ -583,13 +603,19 @@
             const statusTextClass = isOnline ? 'on' : 'off';
             let statusHtml = showStatus ? `<div class="status-dot ${statusClass}"></div>` : '';
 
+            // Calculate Status Text
+            let displayStatusText = isOnline ? 'Online' : 'Offline';
+            if (!isOnline && lastSeenDate) {
+                displayStatusText = formatLastSeen(lastSeenDate);
+            }
+
             li.innerHTML = `
                 <div class="avatar" style="background-color:${getAvatarColor(u.displayName)}">${getInitials(u.displayName)}${statusHtml}</div>
                 <div class="user-info-col">
                     <div class="user-name">${escapeHtml(u.displayName)}</div>
                     <div class="user-id-sub">${formatUniqueID(u.username)}</div>
                 </div>
-                <span class="status-text ${statusTextClass}">${isOnline?'Online':'Offline'}</span>
+                <span class="status-text ${statusTextClass}">${displayStatusText}</span>
                 <span class="badge">${count}</span>
             `;
             li.onclick = () => openChat(u.username, u.displayName);
@@ -613,7 +639,8 @@
                     const isOnline = onlineUserList.some(u => u.username === f.username);
                     const onlineData = onlineUserList.find(u => u.username === f.username);
                     const displayName = onlineData ? onlineData.displayName : f.displayName;
-                    list.appendChild(createListItem({ username: f.username, displayName: displayName }, isOnline, true));
+                    // Pass lastSeen if available
+                    list.appendChild(createListItem({ username: f.username, displayName: displayName }, isOnline, true, f.lastSeen));
                 });
             } else { section.style.display = 'none'; }
         }
@@ -735,7 +762,6 @@
             }
         }
         
-        // --- NEW: CLOUDINARY UPLOAD FUNCTION ---
         async function uploadAndSendImage() {
             const file = document.getElementById('file-input').files[0];
             if(!file || !activeChatUser) return;
@@ -746,7 +772,6 @@
             fd.append('upload_preset', UPLOAD_PRESET);
 
             try {
-                // Upload to Cloudinary
                 const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
                     method: 'POST',
                     body: fd
@@ -754,7 +779,6 @@
                 const data = await res.json();
                 
                 if(data.secure_url) {
-                    // Send URL via Socket
                     socket.emit('private message', { 
                         to: activeChatUser, 
                         image: data.secure_url, 
@@ -768,7 +792,6 @@
                 showToast("Error Uploading"); 
                 console.error(e);
             }
-            // Reset input
             document.getElementById('file-input').value = null;
         }
 
