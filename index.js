@@ -53,6 +53,9 @@ const archiveSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now } 
 });
 const ArchivedMessage = mongoose.model("ArchivedMessage", archiveSchema);
+app.get("/ping", (req, res) => { 
+    res.status(200).send("Pong"); 
+});
 
 app.get("/", (req, res) => { res.sendFile(__dirname + "/index.html"); });
 app.use(express.static(__dirname));
