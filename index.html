@@ -8,9 +8,6 @@
 <meta name="theme-color" content="#0084ff">
 <link rel="apple-touch-icon" href="icon-192.png">
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -91,7 +88,7 @@
         #sidebar { width: 320px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; height: 100%; z-index: 10; flex-shrink: 0; }
         .profile-header { padding: 15px 20px; padding-top: max(15px, env(safe-area-inset-top)); background: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; min-height: 60px; flex-shrink: 0; }
         .my-info-wrap { display: flex; align-items: center; gap: 12px; flex: 1; overflow: hidden; cursor: pointer; }
-        /* AVATAR */
+        /* AVATAR CSS */
         .avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 600; color: white; flex-shrink: 0; text-transform: uppercase; font-size: 16px; position: relative; background-size: cover; background-position: center; cursor: pointer; }
         .avatar.has-img { color: transparent !important; background-color: transparent !important; }
         [data-theme="hacker"] .avatar { border-radius: 0; border: 1px solid var(--accent-color); background: transparent !important; color: var(--accent-color); }
@@ -188,13 +185,7 @@
         .msg-time { font-size: 10px; opacity: 0.7; display: block; text-align: right; margin-top: 4px; }
         .sys-msg .bubble { background: rgba(255, 71, 87, 0.1); color: var(--danger-color); border-radius: 10px; font-size: 13px; text-align: center; }
 
-        /* PREVIEW AREAS */
         #reply-preview-box { display: none; background: var(--bg-hover); border-left: 4px solid var(--accent-color); padding: 8px 15px; font-size: 13px; color: var(--text-secondary); flex-shrink: 0; justify-content: space-between; align-items: center; }
-        
-        /* CHAT IMAGE PREVIEW (NEW) */
-        #chat-image-preview { display: none; background: var(--bg-chat); padding: 10px; border-top: 1px solid var(--border-color); align-items: center; gap: 10px; }
-        #chat-preview-img { height: 60px; width: auto; border-radius: 6px; border: 1px solid var(--border-input); }
-        
         .reply-info { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
         .reply-to-name { font-weight: 600; color: var(--accent-color); margin-bottom: 2px; }
         .reply-to-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -245,7 +236,7 @@
         .btn-save { background: var(--accent-color); color: var(--accent-text); }
         [data-theme="hacker"] .btn-save { color: black; background: var(--accent-color); }
 
-        /* PROFILE MODAL */
+        /* PROFILE MODAL STYLES (NEW) */
         .profile-img-large { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 15px; background-size: cover; background-position: center; font-size: 30px; display: flex; align-items: center; justify-content: center; color: white; border: 3px solid var(--bg-sidebar); box-shadow: 0 5px 15px rgba(0,0,0,0.1); cursor: zoom-in; }
         [data-theme="hacker"] .profile-img-large { border: 1px solid var(--accent-color); border-radius: 0; color: var(--accent-color); box-shadow: 0 0 10px rgba(0,255,0,0.2); }
         .profile-bio-wrap { margin-bottom: 20px; text-align: center; }
@@ -255,11 +246,6 @@
         .bio-input:focus { border-color: var(--accent-color); background: var(--bg-input); }
         .profile-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
 
-        /* CROPPER MODAL STYLES */
-        #modal-cropper .modal-box { width: 95%; max-width: 400px; padding: 15px; }
-        .img-container { max-height: 400px; width: 100%; background: #000; overflow: hidden; margin-bottom: 15px; border-radius: 8px; }
-        .img-container img { max-width: 100%; display: block; }
-        
         @media (max-width: 768px) {
             #sidebar { width: 100%; }
             #chat-area { width: 100%; position: absolute; top:0; left:0; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1); z-index: 50; }
@@ -278,7 +264,7 @@
     <div id="loading-screen"><div class="spinner"></div></div>
     <div id="toast-box"><span id="toast-msg">Notification</span></div>
 
-    <input type="file" id="profile-upload" accept="image/*" hidden onchange="startCropProcess(this)" onclick="this.value=null;">
+    <input type="file" id="profile-upload" accept="image/*" hidden onchange="uploadProfilePic()" onclick="this.value=null;">
 
     <div id="auth-screen">
         <button class="login-theme-switch" onclick="toggleTheme()" title="Switch Theme">
@@ -324,14 +310,12 @@
         <div id="sidebar">
             <div class="profile-header">
                 <div class="my-info-wrap" onclick="showMyProfile()">
-                        <div class="avatar" id="my-avatar"></div>
-                            <div class="my-name-container">
-                                <div class="my-name-text">
-                                    <span id="my-display-name">...</span> 
-                                    <span class="edit-icon" onclick="event.stopPropagation(); showChangeNameModal()" title="Change Name" style="cursor:pointer; padding: 5px; font-size: 16px;">✎</span>
-                                </div>
-                            <div class="user-id-sub" id="my-unique-id"></div>
+                    <div class="avatar" id="my-avatar"></div>
+                    <div class="my-name-container">
+                        <div class="my-name-text">
+                            <span id="my-display-name">...</span> 
                         </div>
+                        <div class="user-id-sub" id="my-unique-id"></div>
                     </div>
                 </div>
                 <div class="header-btn-group">
@@ -400,18 +384,13 @@
                     <span class="reply-close" onclick="cancelReply()">&times;</span>
                 </div>
 
-                <div id="chat-image-preview">
-                    <img id="chat-preview-img" src="">
-                    <span class="reply-close" onclick="cancelChatImage()">&times;</span>
-                </div>
-
                 <emoji-picker></emoji-picker>
 
                 <form class="input-area" onsubmit="sendMessage(); return false;">
                     <button type="button" class="icon-btn" onclick="document.getElementById('file-input').click()">
                         <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     </button>
-                    <input type="file" id="file-input" accept="image/*" hidden onchange="handleChatFileSelect(this)" onclick="this.value=null;">
+                    <input type="file" id="file-input" accept="image/*" hidden onchange="uploadAndSendImage()" onclick="this.value=null;">
 
                     <div class="input-wrapper">
                         <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" oninput="handleTyping()">
@@ -455,19 +434,6 @@
             </div>
             
             <button class="btn-modal btn-save" style="margin-top:15px; width:100%" onclick="closeModal('modal-user-profile')">Close</button>
-        </div>
-    </div>
-
-    <div id="modal-cropper" class="modal-overlay modal-center">
-        <div class="modal-box">
-            <div class="modal-title">Adjust Photo</div>
-            <div class="img-container">
-                <img id="cropper-img" src="">
-            </div>
-            <div class="modal-btns">
-                <button class="btn-modal btn-cancel" onclick="closeCropperModal()">Cancel</button>
-                <button class="btn-modal btn-save" onclick="saveCropAndUpload()">Save</button>
-            </div>
         </div>
     </div>
 
@@ -524,7 +490,7 @@
 
         // --- CORE VARS ---
         const socket = io();
-        let myUsername = "", myDisplayName = "", myAvatarUrl = "", myBio = "";
+        let myUsername = "", myDisplayName = "", myAvatarUrl = "", myBio = ""; // Added myBio
         let activeChatUser = null;
         let conversations = JSON.parse(localStorage.getItem('chat_history') || '{}');
         let unreadCounts = {};
@@ -532,19 +498,19 @@
         let onlineUserList = []; 
         const colors = ["#ef4444", "#f97316", "#f59e0b", "#84cc16", "#10b981", "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6", "#d946ef", "#f43f5e"];
         let currentReply = null;
-        let cropper = null; // Cropper instance
-        let pendingChatFile = null; // Chat file pending send
 
         function getAvatarColor(name) { let sum=0; for(let i=0; i<name.length; i++) sum+=name.charCodeAt(i); return colors[sum % colors.length]; }
         function getInitials(name) { if(!name) return "?"; const p=name.trim().split(" "); if(p.length===1) return p[0].substring(0,2).toUpperCase(); return (p[0][0]+p[p.length-1][0]).toUpperCase(); }
         function escapeHtml(t) { if(!t) return t; return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
         function formatUniqueID(u) { return "pchat@" + u; }
 
+        // --- HELPER: RENDER AVATAR ---
         function renderAvatar(el, name, url) {
             el.innerText = getInitials(name);
             el.style.backgroundColor = getAvatarColor(name);
             el.style.backgroundImage = "none";
             el.classList.remove("has-img");
+            
             if (url && url.trim() !== "") {
                 el.style.backgroundImage = `url('${url}')`;
                 el.classList.add("has-img");
@@ -552,6 +518,7 @@
             }
         }
 
+        // --- HELPER: LAST SEEN ---
         function formatLastSeen(isoDate) {
             if(!isoDate) return "Offline";
             const date = new Date(isoDate);
@@ -636,7 +603,7 @@
             myDisplayName = data.displayName;
             myFriends = data.friends || [];
             myAvatarUrl = data.avatar || "";
-            myBio = data.bio || "";
+            myBio = data.bio || ""; // Store my bio
             
             const savedHistory = localStorage.getItem('chat_history_'+myUsername);
             if(savedHistory) conversations = JSON.parse(savedHistory);
@@ -679,7 +646,11 @@
             const avatarDiv = document.createElement('div');
             avatarDiv.className = "avatar";
             avatarDiv.innerHTML = statusHtml;
-            avatarDiv.onclick = (e) => { e.stopPropagation(); showUserProfile(u.username); };
+            // IMPORTANT: Stop propagation on avatar click to show Profile Modal
+            avatarDiv.onclick = (e) => {
+                e.stopPropagation();
+                showUserProfile(u.username);
+            };
             renderAvatar(avatarDiv, u.displayName, u.avatar);
 
             li.innerHTML = `
@@ -691,6 +662,7 @@
                 <span class="status-text ${statusTextClass}">${displayStatusText}</span>
                 <span class="badge">${count}</span>
             `;
+            // List item click opens chat
             li.onclick = () => openChat(u.username, u.displayName, u.avatar); 
             return li;
         }
@@ -741,40 +713,48 @@
             });
         }
 
-        // --- PROFILE LOGIC ---
+        // --- NEW: PROFILE MODAL LOGIC ---
         function showMyProfile() {
             const modal = document.getElementById('modal-user-profile');
             document.getElementById('profile-modal-name').innerText = myDisplayName;
-            document.getElementById('profile-modal-name').onclick = showChangeNameModal; 
+            document.getElementById('profile-modal-name').onclick = showChangeNameModal; // Allow name edit
             document.getElementById('profile-modal-id').innerText = formatUniqueID(myUsername);
+            
+            // Render Large Avatar
             const lgAv = document.getElementById('profile-img-large');
             renderAvatar(lgAv, myDisplayName, myAvatarUrl);
             lgAv.onclick = () => { if(myAvatarUrl) openImageViewer(myAvatarUrl); };
 
+            // Bio (Editable)
             document.getElementById('profile-bio-display').style.display = 'none';
             const bioInput = document.getElementById('profile-bio-input');
             bioInput.style.display = 'block';
             bioInput.value = myBio;
             
+            // Actions
             document.getElementById('my-profile-actions').style.display = 'grid';
+            
             modal.style.display = 'flex';
         }
 
         function showUserProfile(username) {
+            // Find user data
             let user = onlineUserList.find(u => u.username === username);
             if (!user) user = myFriends.find(f => f.username === username);
-            if (!user && username === activeChatUser) user = { username: activeChatUser, displayName: document.getElementById('chat-with-name').innerText, avatar: "", bio: "Offline" };
+            if (!user && username === activeChatUser) user = { username: activeChatUser, displayName: document.getElementById('chat-with-name').innerText, avatar: "", bio: "Offline / Unknown" };
+            
             if(!user) return;
 
             const modal = document.getElementById('modal-user-profile');
             document.getElementById('profile-modal-name').innerText = user.displayName;
-            document.getElementById('profile-modal-name').onclick = null; 
+            document.getElementById('profile-modal-name').onclick = null; // No edit
             document.getElementById('profile-modal-id').innerText = formatUniqueID(user.username);
             
             const lgAv = document.getElementById('profile-img-large');
             renderAvatar(lgAv, user.displayName, user.avatar);
             lgAv.onclick = () => { if(user.avatar) openImageViewer(user.avatar); };
 
+            // Bio (Read Only)
             const bioDisplay = document.getElementById('profile-bio-display');
             document.getElementById('profile-bio-input').style.display = 'none';
             bioDisplay.style.display = 'block';
@@ -786,186 +766,18 @@
 
         function saveBio() {
             const val = document.getElementById('profile-bio-input').value.trim();
-            if(val !== myBio) { socket.emit('update_bio', val); }
+            if(val !== myBio) {
+                socket.emit('update_bio', val);
+            }
         }
         
         function removeAvatar() {
-            if(confirm("Remove profile photo?")) { socket.emit('update_avatar', ""); }
+            if(confirm("Remove profile photo?")) {
+                socket.emit('update_avatar', ""); // Send empty string
+            }
         }
+
         socket.on('bio_success', (txt) => { myBio = txt; showToast("Bio updated"); });
-
-        // --- CROPPER & UPLOAD LOGIC ---
-        function startCropProcess(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    const img = document.getElementById('cropper-img');
-                    img.src = e.target.result;
-                    document.getElementById('modal-cropper').style.display = 'flex';
-                    if (cropper) cropper.destroy();
-                    cropper = new Cropper(img, {
-                        aspectRatio: 1,
-                        viewMode: 1,
-                        minContainerHeight: 300,
-                        minContainerWidth: 300,
-                    });
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-            input.value = null; // Reset input
-        }
-
-        function closeCropperModal() {
-            document.getElementById('modal-cropper').style.display = 'none';
-            if (cropper) cropper.destroy();
-        }
-
-        function saveCropAndUpload() {
-            if (!cropper) return;
-            const canvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
-            canvas.toBlob((blob) => {
-                uploadProfileBlob(blob);
-                closeCropperModal();
-            });
-        }
-
-        async function uploadProfileBlob(blob) {
-            showToast("Updating Profile Pic...");
-            const fd = new FormData();
-            fd.append('file', blob);
-            fd.append('upload_preset', UPLOAD_PRESET);
-            fd.append('folder', 'profile');
-
-            try {
-                const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
-                const data = await res.json();
-                if(data.secure_url) {
-                    socket.emit('update_avatar', data.secure_url);
-                } else { showToast("Update Failed"); }
-            } catch(e) { showToast("Error Uploading"); }
-        }
-
-        // --- CHAT IMAGE PREVIEW & SEND LOGIC ---
-        function handleChatFileSelect(input) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                pendingChatFile = file; // Store file pending send
-                
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    document.getElementById('chat-preview-img').src = e.target.result;
-                    document.getElementById('chat-image-preview').style.display = 'flex';
-                    document.getElementById('message-input').focus();
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function cancelChatImage() {
-            pendingChatFile = null;
-            document.getElementById('chat-image-preview').style.display = 'none';
-            document.getElementById('file-input').value = null;
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('message-input');
-            const msgText = input.value.trim();
-            const hasImage = !!pendingChatFile;
-
-            if ((!msgText && !hasImage) || !activeChatUser) return;
-
-            // 1. INSTANT DISPLAY (Optimistic UI)
-            // If there's an image, create a temp blob URL to show immediately
-            let tempImgUrl = null;
-            if (hasImage) tempImgUrl = URL.createObjectURL(pendingChatFile);
-
-            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            
-            // Construct message object
-            // If sending image, we use temp URL first
-            const msgData = {
-                from: "Me", fromName: myDisplayName, toUser: activeChatUser,
-                msg: msgText, 
-                type: hasImage ? 'image' : 'text',
-                image: tempImgUrl, // Local Blob URL
-                replyTo: currentReply, timestamp: timestamp
-            };
-
-            // Add to conversation immediately
-            if (!conversations[activeChatUser]) conversations[activeChatUser] = [];
-            conversations[activeChatUser].push(msgData);
-            
-            // Store index to update later with real URL
-            const msgIndex = conversations[activeChatUser].length - 1;
-
-            renderMessages(); // Update UI immediately
-            
-            // Clear Inputs immediately
-            input.value = ""; 
-            cancelChatImage(); 
-            cancelReply();
-            socket.emit('stop_typing', { to: activeChatUser });
-
-            // 2. BACKGROUND UPLOAD & SEND
-            let finalImageUrl = null;
-            if (hasImage) {
-                // Upload
-                try {
-                    const fd = new FormData();
-                    fd.append('file', pendingChatFile); // The file we stored
-                    fd.append('upload_preset', UPLOAD_PRESET);
-                    
-                    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
-                    const data = await res.json();
-                    if(data.secure_url) {
-                        finalImageUrl = data.secure_url;
-                        // Update local history with real URL so it persists on refresh
-                        conversations[activeChatUser][msgIndex].image = finalImageUrl;
-                        saveHistory(); 
-                    }
-                } catch(e) { console.error("Chat upload failed", e); }
-            } else {
-                saveHistory(); // Just text
-            }
-
-            // 3. EMIT TO SERVER (Once upload is done or if text only)
-            // If image upload failed, we might still send text, or fail. Assuming success for now.
-            socket.emit('private message', { 
-                to: activeChatUser, 
-                msg: msgText, 
-                type: hasImage ? 'image' : 'text', 
-                image: finalImageUrl, 
-                replyTo: msgData.replyTo 
-            });
-            
-            // Clear pending
-            pendingChatFile = null;
-        }
-        
-        // --- OTHER SOCKET EVENTS ---
-        socket.on('avatar_success', (url) => {
-            myAvatarUrl = url;
-            updateMyProfileUI();
-            if(document.getElementById('modal-user-profile').style.display === 'flex') {
-                renderAvatar(document.getElementById('profile-img-large'), myDisplayName, url);
-            }
-            showToast("Profile Picture Updated!");
-        });
-
-        socket.on('msg_failed', (data) => {
-            if (!conversations[data.to]) conversations[data.to] = [];
-            conversations[data.to].push({ from: "System", msg: data.msg, type: "system", timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
-            saveHistory(); if (activeChatUser === data.to) renderMessages();
-        });
-
-        socket.on('private message', (data) => {
-            const partnerID = data.from === "Me" ? data.toUser : data.from;
-            if (!conversations[partnerID]) conversations[partnerID] = [];
-            conversations[partnerID].push(data);
-            saveHistory();
-            if (activeChatUser === partnerID) { document.getElementById('typing-indicator').style.display = 'none'; renderMessages(); } 
-            else if (data.from !== "Me") { unreadCounts[partnerID] = (unreadCounts[partnerID] || 0) + 1; renderAllLists(); }
-        });
 
         function searchUser() {
             const input = document.getElementById('user-search-input');
@@ -1052,6 +864,93 @@
 
         function startReply(fromName, text) { currentReply = { fromName, text }; document.getElementById('reply-target-name').innerText = "Replying to " + fromName; document.getElementById('reply-target-text').innerText = text; document.getElementById('reply-preview-box').style.display = 'flex'; document.getElementById('message-input').focus(); }
         function cancelReply() { currentReply = null; document.getElementById('reply-preview-box').style.display = 'none'; }
+
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const msg = input.value.trim();
+            if (msg && activeChatUser) {
+                socket.emit('private message', { to: activeChatUser, msg: msg, type: 'text', replyTo: currentReply });
+                socket.emit('stop_typing', { to: activeChatUser });
+                input.value = ""; input.focus(); cancelReply(); scrollToBottom();
+            }
+        }
+        
+        async function uploadAndSendImage() {
+            const file = document.getElementById('file-input').files[0];
+            if(!file || !activeChatUser) return;
+
+            showToast("Uploading Image...");
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('upload_preset', UPLOAD_PRESET);
+
+            try {
+                const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+                    method: 'POST',
+                    body: fd
+                });
+                const data = await res.json();
+                
+                if(data.secure_url) {
+                    socket.emit('private message', { 
+                        to: activeChatUser, 
+                        image: data.secure_url, 
+                        type: 'image' 
+                    });
+                } else {
+                    showToast("Upload Failed");
+                    console.error(data);
+                }
+            } catch(e) { 
+                showToast("Error Uploading"); 
+                console.error(e);
+            }
+            document.getElementById('file-input').value = null;
+        }
+
+        async function uploadProfilePic() {
+            const file = document.getElementById('profile-upload').files[0];
+            if(!file) return;
+            showToast("Updating Profile Pic...");
+            
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('upload_preset', UPLOAD_PRESET);
+            fd.append('folder', 'profile');
+
+            try {
+                const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
+                const data = await res.json();
+                if(data.secure_url) {
+                    socket.emit('update_avatar', data.secure_url);
+                } else { showToast("Update Failed"); }
+            } catch(e) { showToast("Error Uploading"); }
+        }
+        
+        socket.on('avatar_success', (url) => {
+            myAvatarUrl = url;
+            updateMyProfileUI();
+            // Update modal if open
+            if(document.getElementById('modal-user-profile').style.display === 'flex') {
+                renderAvatar(document.getElementById('profile-img-large'), myDisplayName, url);
+            }
+            showToast("Profile Picture Updated!");
+        });
+
+        socket.on('msg_failed', (data) => {
+            if (!conversations[data.to]) conversations[data.to] = [];
+            conversations[data.to].push({ from: "System", msg: data.msg, type: "system", timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+            saveHistory(); if (activeChatUser === data.to) renderMessages();
+        });
+
+        socket.on('private message', (data) => {
+            const partnerID = data.from === "Me" ? data.toUser : data.from;
+            if (!conversations[partnerID]) conversations[partnerID] = [];
+            conversations[partnerID].push(data);
+            saveHistory();
+            if (activeChatUser === partnerID) { document.getElementById('typing-indicator').style.display = 'none'; renderMessages(); } 
+            else if (data.from !== "Me") { unreadCounts[partnerID] = (unreadCounts[partnerID] || 0) + 1; renderAllLists(); }
+        });
 
         function renderMessages() {
             const list = document.getElementById('messages-list'); list.innerHTML = "";
