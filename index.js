@@ -25,17 +25,18 @@ mongoose.connect(MONGO_URI)
     console.error("❌ MongoDB Connection Error:", err);
   });
 
-// --- USER SCHEMA (UPDATED) ---
+// --- USER SCHEMA (UPDATED WITH AVATAR) ---
 const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   password: { type: String, required: true },
   displayName: String,
   friends: [String],
-  lastSeen: { type: Date, default: Date.now } // Added Last Seen
+  lastSeen: { type: Date, default: Date.now },
+  avatar: { type: String, default: "" } // (NEW) Profile Picture Field
 });
 const User = mongoose.model("User", userSchema);
 
-// --- 1. PENDING MESSAGES (Offline & Auto Delete) ---
+// --- 1. PENDING MESSAGES ---
 const pendingSchema = new mongoose.Schema({
   from: String, fromName: String, toUser: String,
   msg: String, type: String, image: String, replyTo: Object,
@@ -44,7 +45,7 @@ const pendingSchema = new mongoose.Schema({
 });
 const PendingMessage = mongoose.model("PendingMessage", pendingSchema);
 
-// --- 2. ARCHIVED MESSAGES (Permanent Backup) ---
+// --- 2. ARCHIVED MESSAGES ---
 const archiveSchema = new mongoose.Schema({
   from: String, fromName: String, toUser: String,
   msg: String, type: String, image: String, replyTo: Object,
@@ -75,7 +76,7 @@ io.on("connection", (socket) => {
       const existingUser = await User.findOne({ username });
       if (existingUser) { socket.emit("reg_error", "Login ID already taken!"); return; }
       const hashedPassword = await bcrypt.hash(password, 10);
-      const newUser = new User({ username, password: hashedPassword, displayName, friends: [] });
+      const newUser = new User({ username, password: hashedPassword, displayName, friends: [], avatar: "" });
       await newUser.save();
       socket.emit("reg_success", "Account created successfully! Please Login.");
     } catch (err) { console.error("Register Error:", err); socket.emit("reg_error", "Server error."); }
@@ -112,19 +113,32 @@ io.on("connection", (socket) => {
       }
       if (loginAttempts[username]) delete loginAttempts[username];
 
-      onlineUsers[username] = { socketId: socket.id, displayName: user.displayName };
+      // Save user to online list with Avatar
+      onlineUsers[username] = { 
+          socketId: socket.id, 
+          displayName: user.displayName,
+          avatar: user.avatar || "" // (NEW) Include Avatar
+      };
+      
       socket.username = username;
       socket.displayName = user.displayName;
 
-      // Update Last Seen Data for Friends
+      // Update Last Seen Data for Friends + Avatar
       const friendDetails = await User.find({ username: { $in: user.friends } });
       const friendsData = friendDetails.map(f => ({ 
           username: f.username, 
           displayName: f.displayName,
-          lastSeen: f.lastSeen // Send lastSeen to client
+          lastSeen: f.lastSeen,
+          avatar: f.avatar || "" // (NEW) Include Friend's Avatar
       }));
 
-      socket.emit("login_success", { username, displayName: user.displayName, friends: friendsData });
+      // Send login success with own avatar
+      socket.emit("login_success", { 
+          username, 
+          displayName: user.displayName, 
+          friends: friendsData,
+          avatar: user.avatar || "" // (NEW) Send own avatar
+      });
       broadcastUserList();
 
       const pendingMessages = await PendingMessage.find({ toUser: username });
@@ -141,11 +155,27 @@ io.on("connection", (socket) => {
     } catch (err) { console.error("Login Error:", err); socket.emit("login_error", "Server error."); }
   });
 
+  // --- AVATAR UPDATE (NEW) ---
+  socket.on("update_avatar", async (url) => {
+    if(!socket.username) return;
+    try {
+        await User.updateOne({ username: socket.username }, { avatar: url });
+        if(onlineUsers[socket.username]) onlineUsers[socket.username].avatar = url;
+        socket.emit("avatar_success", url);
+        broadcastUserList();
+    } catch(e) { console.error("Avatar Update Error:", e); }
+  });
+
   // --- SEARCH & FRIENDS ---
   socket.on("search_user", async (queryId) => {
     try {
       const user = await User.findOne({ username: queryId });
-      socket.emit("search_result", user ? { found: true, username: user.username, displayName: user.displayName } : { found: false });
+      socket.emit("search_result", user ? { 
+          found: true, 
+          username: user.username, 
+          displayName: user.displayName,
+          avatar: user.avatar || "" // Return avatar in search
+      } : { found: false });
     } catch(e) { socket.emit("search_result", { found: false }); }
   });
 
@@ -158,11 +188,11 @@ io.on("connection", (socket) => {
       if(!me.friends.includes(targetId)) {
           me.friends.push(targetId);
           await me.save();
-          // Include lastSeen when adding new friend
           socket.emit("friend_added", { 
               username: targetId, 
               displayName: targetUser.displayName,
-              lastSeen: targetUser.lastSeen 
+              lastSeen: targetUser.lastSeen,
+              avatar: targetUser.avatar || "" 
           });
           broadcastUserList(); 
       }
@@ -226,21 +256,23 @@ io.on("connection", (socket) => {
     }
   });
 
-  // --- DISCONNECT (UPDATED) ---
+  // --- DISCONNECT ---
   socket.on("disconnect", async () => {
     if (socket.username) { 
-        // Save Last Seen Time
         try {
             await User.updateOne({ username: socket.username }, { lastSeen: new Date() });
         } catch(e) { console.error(e); }
-        
         delete onlineUsers[socket.username]; 
         broadcastUserList(); 
     }
   });
 
   function broadcastUserList() {
-    const list = Object.keys(onlineUsers).map(u => ({ username: u, displayName: onlineUsers[u].displayName }));
+    const list = Object.keys(onlineUsers).map(u => ({ 
+        username: u, 
+        displayName: onlineUsers[u].displayName,
+        avatar: onlineUsers[u].avatar || "" // Send Avatar to everyone
+    }));
     io.emit("update user list", list);
   }
 });
