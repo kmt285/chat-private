@@ -25,7 +25,7 @@ mongoose.connect(MONGO_URI)
     console.error("❌ MongoDB Connection Error:", err);
   });
 
-// --- USER SCHEMA (UPDATED WITH BIO) ---
+// --- USER SCHEMA ---
 const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   password: { type: String, required: true },
@@ -33,11 +33,11 @@ const userSchema = new mongoose.Schema({
   friends: [String],
   lastSeen: { type: Date, default: Date.now },
   avatar: { type: String, default: "" },
-  bio: { type: String, default: "" } // (NEW) Bio field added
+  bio: { type: String, default: "" }
 });
 const User = mongoose.model("User", userSchema);
 
-// --- PENDING & ARCHIVED MESSAGES ---
+// --- MESSAGES SCHEMAS ---
 const pendingSchema = new mongoose.Schema({
   from: String, fromName: String, toUser: String,
   msg: String, type: String, image: String, replyTo: Object,
@@ -76,12 +76,8 @@ io.on("connection", (socket) => {
       if (existingUser) { socket.emit("reg_error", "Login ID already taken!"); return; }
       const hashedPassword = await bcrypt.hash(password, 10);
       const newUser = new User({ 
-          username, 
-          password: hashedPassword, 
-          displayName, 
-          friends: [], 
-          avatar: "",
-          bio: "" // Init Bio
+          username, password: hashedPassword, displayName, 
+          friends: [], avatar: "", bio: "" 
       });
       await newUser.save();
       socket.emit("reg_success", "Account created successfully! Please Login.");
@@ -120,31 +116,22 @@ io.on("connection", (socket) => {
       if (loginAttempts[username]) delete loginAttempts[username];
 
       onlineUsers[username] = { 
-          socketId: socket.id, 
-          displayName: user.displayName,
-          avatar: user.avatar || "",
-          bio: user.bio || "" // Include Bio
+          socketId: socket.id, displayName: user.displayName,
+          avatar: user.avatar || "", bio: user.bio || ""
       };
       
       socket.username = username;
       socket.displayName = user.displayName;
 
-      // Friend Details
       const friendDetails = await User.find({ username: { $in: user.friends } });
       const friendsData = friendDetails.map(f => ({ 
-          username: f.username, 
-          displayName: f.displayName,
-          lastSeen: f.lastSeen,
-          avatar: f.avatar || "",
-          bio: f.bio || ""
+          username: f.username, displayName: f.displayName,
+          lastSeen: f.lastSeen, avatar: f.avatar || "", bio: f.bio || ""
       }));
 
       socket.emit("login_success", { 
-          username, 
-          displayName: user.displayName, 
-          friends: friendsData,
-          avatar: user.avatar || "",
-          bio: user.bio || ""
+          username, displayName: user.displayName, 
+          friends: friendsData, avatar: user.avatar || "", bio: user.bio || ""
       });
       broadcastUserList();
 
@@ -162,7 +149,7 @@ io.on("connection", (socket) => {
     } catch (err) { console.error("Login Error:", err); socket.emit("login_error", "Server error."); }
   });
 
-  // --- PROFILE UPDATES (AVATAR & BIO) ---
+  // --- UPDATES ---
   socket.on("update_avatar", async (url) => {
     if(!socket.username) return;
     try {
@@ -176,7 +163,7 @@ io.on("connection", (socket) => {
   socket.on("update_bio", async (text) => {
     if(!socket.username) return;
     try {
-        const cleanBio = text ? text.substring(0, 100) : ""; // Max 100 chars
+        const cleanBio = text ? text.substring(0, 100) : ""; 
         await User.updateOne({ username: socket.username }, { bio: cleanBio });
         if(onlineUsers[socket.username]) onlineUsers[socket.username].bio = cleanBio;
         socket.emit("bio_success", cleanBio);
@@ -189,11 +176,8 @@ io.on("connection", (socket) => {
     try {
       const user = await User.findOne({ username: queryId });
       socket.emit("search_result", user ? { 
-          found: true, 
-          username: user.username, 
-          displayName: user.displayName,
-          avatar: user.avatar || "",
-          bio: user.bio || ""
+          found: true, username: user.username, displayName: user.displayName,
+          avatar: user.avatar || "", bio: user.bio || ""
       } : { found: false });
     } catch(e) { socket.emit("search_result", { found: false }); }
   });
@@ -208,11 +192,8 @@ io.on("connection", (socket) => {
           me.friends.push(targetId);
           await me.save();
           socket.emit("friend_added", { 
-              username: targetId, 
-              displayName: targetUser.displayName,
-              lastSeen: targetUser.lastSeen,
-              avatar: targetUser.avatar || "",
-              bio: targetUser.bio || ""
+              username: targetId, displayName: targetUser.displayName,
+              lastSeen: targetUser.lastSeen, avatar: targetUser.avatar || "", bio: targetUser.bio || ""
           });
           broadcastUserList(); 
       }
@@ -289,10 +270,8 @@ io.on("connection", (socket) => {
 
   function broadcastUserList() {
     const list = Object.keys(onlineUsers).map(u => ({ 
-        username: u, 
-        displayName: onlineUsers[u].displayName,
-        avatar: onlineUsers[u].avatar || "",
-        bio: onlineUsers[u].bio || "" // Include Bio in broadcast
+        username: u, displayName: onlineUsers[u].displayName,
+        avatar: onlineUsers[u].avatar || "", bio: onlineUsers[u].bio || ""
     }));
     io.emit("update user list", list);
   }
