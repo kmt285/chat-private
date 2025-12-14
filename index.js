@@ -25,32 +25,31 @@ mongoose.connect(MONGO_URI)
     console.error("❌ MongoDB Connection Error:", err);
   });
 
-// --- USER SCHEMA ---
+// --- USER SCHEMA (UPDATED) ---
 const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   password: { type: String, required: true },
   displayName: String,
-  friends: [String]
+  friends: [String],
+  lastSeen: { type: Date, default: Date.now } // Added Last Seen
 });
 const User = mongoose.model("User", userSchema);
 
 // --- 1. PENDING MESSAGES (Offline & Auto Delete) ---
-// Offline User တွေအတွက် ယာယီသိမ်းမည့်နေရာ
 const pendingSchema = new mongoose.Schema({
   from: String, fromName: String, toUser: String,
   msg: String, type: String, image: String, replyTo: Object,
   timestamp: String,
-  createdAt: { type: Date, default: Date.now, expires: 604800 } // 7 Days TTL
+  createdAt: { type: Date, default: Date.now, expires: 604800 } 
 });
 const PendingMessage = mongoose.model("PendingMessage", pendingSchema);
 
 // --- 2. ARCHIVED MESSAGES (Permanent Backup) ---
-// Admin ကြည့်ဖို့ (သို့) Backup အတွက် သီးသန့် (User ဆီ ပြန်မပို့)
 const archiveSchema = new mongoose.Schema({
   from: String, fromName: String, toUser: String,
   msg: String, type: String, image: String, replyTo: Object,
   timestamp: String,
-  createdAt: { type: Date, default: Date.now } // No Expiry
+  createdAt: { type: Date, default: Date.now } 
 });
 const ArchivedMessage = mongoose.model("ArchivedMessage", archiveSchema);
 
@@ -82,7 +81,7 @@ io.on("connection", (socket) => {
     } catch (err) { console.error("Register Error:", err); socket.emit("reg_error", "Server error."); }
   });
 
-  // --- LOGIN ---
+  // --- LOGIN (UPDATED) ---
   socket.on("login", async ({ username, password }) => {
     const now = Date.now();
     if (loginAttempts[username]) {
@@ -117,23 +116,24 @@ io.on("connection", (socket) => {
       socket.username = username;
       socket.displayName = user.displayName;
 
+      // Update Last Seen Data for Friends
       const friendDetails = await User.find({ username: { $in: user.friends } });
-      const friendsData = friendDetails.map(f => ({ username: f.username, displayName: f.displayName }));
+      const friendsData = friendDetails.map(f => ({ 
+          username: f.username, 
+          displayName: f.displayName,
+          lastSeen: f.lastSeen // Send lastSeen to client
+      }));
 
       socket.emit("login_success", { username, displayName: user.displayName, friends: friendsData });
       broadcastUserList();
 
-      // --- OFFLINE MESSAGES DELIVERY (FROM PENDING ONLY) ---
-      // Login ဝင်လာရင် Pending ထဲက စာတွေကိုပဲ ပို့မယ် (Archive ကို မပို့ဘူး)
       const pendingMessages = await PendingMessage.find({ toUser: username });
-      
       if (pendingMessages.length > 0) {
         for (const msg of pendingMessages) {
             socket.emit("private message", {
                 from: msg.from, fromName: msg.fromName, toUser: msg.toUser,
                 msg: msg.msg, type: msg.type, image: msg.image, replyTo: msg.replyTo, timestamp: msg.timestamp
             });
-            // ပို့ပြီးတာနဲ့ Pending Database ထဲက ချက်ချင်းဖျက်မယ်
             await PendingMessage.deleteOne({ _id: msg._id });
         }
       }
@@ -158,7 +158,12 @@ io.on("connection", (socket) => {
       if(!me.friends.includes(targetId)) {
           me.friends.push(targetId);
           await me.save();
-          socket.emit("friend_added", { username: targetId, displayName: targetUser.displayName });
+          // Include lastSeen when adding new friend
+          socket.emit("friend_added", { 
+              username: targetId, 
+              displayName: targetUser.displayName,
+              lastSeen: targetUser.lastSeen 
+          });
           broadcastUserList(); 
       }
     } catch(e) { console.error(e); }
@@ -194,7 +199,6 @@ io.on("connection", (socket) => {
 
   socket.on("private message", async (data) => {
     if (!data || !data.to) return;
-    // Data validation: must have msg OR image
     if ((!data.msg || !data.msg.trim()) && !data.image) return;
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -206,20 +210,13 @@ io.on("connection", (socket) => {
     };
 
     try {
-        // 1. Always Save to Archive (Permanent Backup)
         await new ArchivedMessage(msgData).save();
-
-        // 2. Delivery Logic
         const recipient = onlineUsers[data.to];
-
-        // Send to Self (Immediate Feedback)
         socket.emit("private message", { ...msgData, from: "Me" });
 
         if (recipient && recipient.socketId) {
-            // Online ဖြစ်ရင် Socket ကနေ တန်းပို့မယ် (Pending ထဲ မသိမ်းဘူး)
             io.to(recipient.socketId).emit("private message", msgData);
         } else {
-            // Offline ဖြစ်နေရင် Pending ထဲ သိမ်းမယ် (၇ ရက်ကျော်ရင် Auto ပျက်မယ်)
             await new PendingMessage(msgData).save();
         }
 
@@ -229,8 +226,17 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("disconnect", () => {
-    if (socket.username) { delete onlineUsers[socket.username]; broadcastUserList(); }
+  // --- DISCONNECT (UPDATED) ---
+  socket.on("disconnect", async () => {
+    if (socket.username) { 
+        // Save Last Seen Time
+        try {
+            await User.updateOne({ username: socket.username }, { lastSeen: new Date() });
+        } catch(e) { console.error(e); }
+        
+        delete onlineUsers[socket.username]; 
+        broadcastUserList(); 
+    }
   });
 
   function broadcastUserList() {
