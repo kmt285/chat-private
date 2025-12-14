@@ -88,9 +88,13 @@
         #sidebar { width: 320px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; height: 100%; z-index: 10; flex-shrink: 0; }
         .profile-header { padding: 15px 20px; padding-top: max(15px, env(safe-area-inset-top)); background: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; min-height: 60px; flex-shrink: 0; }
         .my-info-wrap { display: flex; align-items: center; gap: 12px; flex: 1; overflow: hidden; }
-        .avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 600; color: white; flex-shrink: 0; text-transform: uppercase; font-size: 16px; position: relative; }
+        /* AVATAR UPDATED CSS */
+        .avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 600; color: white; flex-shrink: 0; text-transform: uppercase; font-size: 16px; position: relative; background-size: cover; background-position: center; cursor: pointer; }
+        .avatar.has-img { color: transparent !important; background-color: transparent !important; }
         [data-theme="hacker"] .avatar { border-radius: 0; border: 1px solid var(--accent-color); background: transparent !important; color: var(--accent-color); }
+        [data-theme="hacker"] .avatar.has-img { background-color: transparent !important; background-size: cover !important; }
         [data-theme="hacker"] .profile-header .avatar::after { content: "$"; position: absolute; bottom: -5px; right: -5px; background: var(--bg-sidebar); color: var(--accent-color); font-size: 14px; font-weight: bold; padding: 0 2px; }
+        
         .my-name-container { display: flex; flex-direction: column; min-width: 0; justify-content: center; }
         .my-name-text { font-weight: 600; font-size: 16px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .edit-icon { font-size: 12px; color: var(--text-muted); }
@@ -127,7 +131,7 @@
         /* Updated Status Text CSS */
         .status-text { font-size: 10px; margin-left: auto; color: var(--text-muted); display: block; max-width: 80px; text-align: right; }
         [data-theme="hacker"] .status-text { font-weight: bold; font-family: monospace; }
-        .status-text.on { color: var(--success-color); display: block; } /* Only show dot for normal theme online */
+        .status-text.on { color: var(--success-color); display: block; } 
         [data-theme="hacker"] .status-text.on { display: block; }
         .status-text.off { color: var(--text-muted); }
         [data-theme="hacker"] .status-text.off { color: var(--danger-color); }
@@ -142,8 +146,11 @@
         .chat-header { background: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; flex-shrink: 0; justify-content: space-between; padding: 10px 15px; padding-top: max(10px, env(safe-area-inset-top)); min-height: 60px; z-index: 20; }
         .header-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
         .back-btn { display: none; background: none; border: none; font-size: 22px; color: var(--text-primary); cursor: pointer; padding: 0 5px; }
-        .header-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 600; color: white; font-size: 14px; flex-shrink: 0; position: relative; }
+        .header-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 600; color: white; font-size: 14px; flex-shrink: 0; position: relative; background-size: cover; background-position: center; }
+        .header-avatar.has-img { background-color: transparent !important; color: transparent !important; }
         [data-theme="hacker"] .header-avatar { border-radius: 0; border: 1px solid var(--accent-color); background: transparent !important; color: var(--accent-color); }
+        [data-theme="hacker"] .header-avatar.has-img { background-color: transparent !important; background-size: cover !important; }
+
         .chat-name-col { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
         .chat-user-name { font-weight: 600; font-size: 16px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .typing-indicator { font-size: 11px; color: var(--accent-color); font-weight: 500; margin-left: 10px; display: none; animation: pulse 1.5s infinite; }
@@ -248,6 +255,8 @@
     <div id="loading-screen"><div class="spinner"></div></div>
     <div id="toast-box"><span id="toast-msg">Notification</span></div>
 
+    <input type="file" id="profile-upload" accept="image/*" hidden onchange="uploadProfilePic()" onclick="this.value=null;">
+
     <div id="auth-screen">
         <button class="login-theme-switch" onclick="toggleTheme()" title="Switch Theme">
             <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
@@ -293,7 +302,7 @@
         <div id="sidebar">
             <div class="profile-header">
                 <div class="my-info-wrap">
-                    <div class="avatar" id="my-avatar"></div>
+                    <div class="avatar" id="my-avatar" onclick="document.getElementById('profile-upload').click()" title="Change Profile Photo"></div>
                     <div class="my-name-container">
                         <div class="my-name-text" onclick="showChangeNameModal()">
                             <span id="my-display-name">...</span> 
@@ -464,7 +473,7 @@
 
         // --- CORE VARS ---
         const socket = io();
-        let myUsername = "", myDisplayName = "", activeChatUser = null;
+        let myUsername = "", myDisplayName = "", myAvatarUrl = "", activeChatUser = null; // (UPDATED) Added myAvatarUrl
         let conversations = JSON.parse(localStorage.getItem('chat_history') || '{}');
         let unreadCounts = {};
         let myFriends = [];
@@ -477,18 +486,28 @@
         function escapeHtml(t) { if(!t) return t; return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
         function formatUniqueID(u) { return "pchat@" + u; }
 
-        // --- LAST SEEN FORMATTER (NEW) ---
+        // --- RENDER AVATAR HELPER (NEW) ---
+        function renderAvatar(el, name, url) {
+            el.innerText = getInitials(name);
+            el.style.backgroundColor = getAvatarColor(name);
+            el.style.backgroundImage = "none";
+            el.classList.remove("has-img");
+            
+            if (url && url.trim() !== "") {
+                el.style.backgroundImage = `url('${url}')`;
+                el.classList.add("has-img");
+                el.innerText = "";
+            }
+        }
+
+        // --- LAST SEEN FORMATTER ---
         function formatLastSeen(isoDate) {
             if(!isoDate) return "Offline";
             const date = new Date(isoDate);
             const now = new Date();
             const diffMs = now - date;
             const oneDayMs = 24 * 60 * 60 * 1000;
-
-            // If older than 24 hours, show default "Offline"
             if (diffMs > oneDayMs) return "Offline";
-
-            // If within 24 hours, show time
             return "Last seen " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
@@ -565,8 +584,8 @@
             myUsername = data.username;
             myDisplayName = data.displayName;
             myFriends = data.friends || [];
+            myAvatarUrl = data.avatar || ""; // (UPDATED) Store own avatar
             
-            // Load history from local storage
             const savedHistory = localStorage.getItem('chat_history_'+myUsername);
             if(savedHistory) conversations = JSON.parse(savedHistory);
             else conversations = {};
@@ -582,15 +601,14 @@
         function updateMyProfileUI() {
             document.getElementById('my-display-name').innerText = myDisplayName;
             document.getElementById('my-unique-id').innerText = formatUniqueID(myUsername);
-            const myAv = document.getElementById('my-avatar');
-            myAv.innerText = getInitials(myDisplayName);
-            myAv.style.backgroundColor = getAvatarColor(myDisplayName);
+            // (UPDATED) Use render helper
+            renderAvatar(document.getElementById('my-avatar'), myDisplayName, myAvatarUrl);
         }
 
         socket.on('update user list', (users) => { onlineUserList = users; renderAllLists(); });
         function renderAllLists() { renderFriends(); renderActiveUsers(); }
 
-        // UPDATED: Now accepts optional lastSeen
+        // UPDATED: Now supports Avatar
         function createListItem(u, isOnline, showStatus, lastSeenDate = null) {
             const li = document.createElement('li');
             const isActive = activeChatUser === u.username ? 'active' : '';
@@ -603,14 +621,19 @@
             const statusTextClass = isOnline ? 'on' : 'off';
             let statusHtml = showStatus ? `<div class="status-dot ${statusClass}"></div>` : '';
 
-            // Calculate Status Text
             let displayStatusText = isOnline ? 'Online' : 'Offline';
             if (!isOnline && lastSeenDate) {
                 displayStatusText = formatLastSeen(lastSeenDate);
             }
 
+            // Create Avatar Div (Using Helper)
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = "avatar";
+            avatarDiv.innerHTML = statusHtml;
+            renderAvatar(avatarDiv, u.displayName, u.avatar);
+
             li.innerHTML = `
-                <div class="avatar" style="background-color:${getAvatarColor(u.displayName)}">${getInitials(u.displayName)}${statusHtml}</div>
+                ${avatarDiv.outerHTML}
                 <div class="user-info-col">
                     <div class="user-name">${escapeHtml(u.displayName)}</div>
                     <div class="user-id-sub">${formatUniqueID(u.username)}</div>
@@ -618,7 +641,7 @@
                 <span class="status-text ${statusTextClass}">${displayStatusText}</span>
                 <span class="badge">${count}</span>
             `;
-            li.onclick = () => openChat(u.username, u.displayName);
+            li.onclick = () => openChat(u.username, u.displayName, u.avatar); // Pass Avatar
             return li;
         }
 
@@ -639,8 +662,8 @@
                     const isOnline = onlineUserList.some(u => u.username === f.username);
                     const onlineData = onlineUserList.find(u => u.username === f.username);
                     const displayName = onlineData ? onlineData.displayName : f.displayName;
-                    // Pass lastSeen if available
-                    list.appendChild(createListItem({ username: f.username, displayName: displayName }, isOnline, true, f.lastSeen));
+                    const avatar = onlineData ? onlineData.avatar : f.avatar; // Get live avatar if online
+                    list.appendChild(createListItem({ username: f.username, displayName: displayName, avatar: avatar }, isOnline, true, f.lastSeen));
                 });
             } else { section.style.display = 'none'; }
         }
@@ -663,13 +686,15 @@
                         const msgFromThem = msgs.find(m => m.from !== "Me");
                         if(msgFromThem && msgFromThem.fromName) displayName = msgFromThem.fromName;
                     }
-                    list.appendChild(createListItem({ username: chatPartnerId, displayName: displayName }, false, true));
+                    // Chat history users don't have live avatar data unless we fetch it, so default to empty
+                    list.appendChild(createListItem({ username: chatPartnerId, displayName: displayName, avatar: "" }, false, true));
                 }
             });
         }
 
         function searchUser() {
-            const q = document.getElementById('user-search-input').value.trim().toLowerCase();
+            const input = document.getElementById('user-search-input');
+            const q = input.value.trim().toLowerCase();
             if(!q) return;
             if(q === myUsername) { showToast("That's you!"); return; }
             socket.emit('search_user', q);
@@ -706,7 +731,6 @@
         function confirmLogout() { 
             localStorage.removeItem('temp_user'); 
             localStorage.removeItem('temp_pass'); 
-            // Do NOT clear history from localStorage here to keep it on device
             location.reload(); 
         }
 
@@ -721,7 +745,7 @@
         
         window.addEventListener('popstate', () => { if (activeChatUser) closeChatUI(); });
 
-        function openChat(username, displayName) {
+        function openChat(username, displayName, avatarUrl = "") {
             activeChatUser = username;
             window.history.pushState({chat: true}, "", "#chat");
             document.body.classList.add('chat-active');
@@ -730,9 +754,11 @@
             document.getElementById('chat-with-name').innerText = displayName;
             document.getElementById('chat-with-id').innerText = formatUniqueID(username);
             document.getElementById('typing-indicator').style.display = 'none';
+            
+            // (UPDATED) Avatar in Header
             const headAv = document.getElementById('header-avatar');
-            headAv.innerText = getInitials(displayName);
-            headAv.style.backgroundColor = getAvatarColor(displayName);
+            renderAvatar(headAv, displayName, avatarUrl);
+
             const isFriend = myFriends.some(f => f.username === username);
             document.getElementById('btn-remove-friend').style.display = isFriend ? 'flex' : 'none';
             document.getElementById('btn-add-friend-chat').style.display = isFriend ? 'none' : 'flex';
@@ -795,6 +821,33 @@
             }
             document.getElementById('file-input').value = null;
         }
+
+        // --- NEW: PROFILE UPLOAD FUNCTION ---
+        async function uploadProfilePic() {
+            const file = document.getElementById('profile-upload').files[0];
+            if(!file) return;
+            showToast("Updating Profile Pic...");
+            
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('upload_preset', UPLOAD_PRESET);
+            fd.append('folder', 'profile'); // (NEW) Upload to 'profile' folder
+
+            try {
+                const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
+                const data = await res.json();
+                if(data.secure_url) {
+                    socket.emit('update_avatar', data.secure_url);
+                } else { showToast("Update Failed"); }
+            } catch(e) { showToast("Error Uploading"); }
+        }
+        
+        // --- NEW: AVATAR SUCCESS LISTENER ---
+        socket.on('avatar_success', (url) => {
+            myAvatarUrl = url;
+            updateMyProfileUI();
+            showToast("Profile Picture Updated!");
+        });
 
         socket.on('msg_failed', (data) => {
             if (!conversations[data.to]) conversations[data.to] = [];
