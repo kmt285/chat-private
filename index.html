@@ -21,7 +21,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     
     <style>
-        /* --- CSS VARIABLES (UNCHANGED) --- */
+        /* --- CSS VARIABLES --- */
         :root {
             --font-family: 'Inter', sans-serif;
             --bg-body: #ffffff; --bg-sidebar: #ffffff; --bg-chat: #ffffff;
@@ -52,7 +52,7 @@
             --grid-image: radial-gradient(#222 1px, transparent 1px); --btn-shape: 0px;
         }
 
-        /* --- STYLES (UNCHANGED) --- */
+        /* --- STYLES --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-family); -webkit-tap-highlight-color: transparent; }
         body { background-color: var(--bg-body); background-image: var(--grid-image); background-size: 20px 20px; height: 100dvh; width: 100%; display: flex; overflow: hidden; color: var(--text-primary); position: fixed; top: 0; left: 0; overscroll-behavior: none; transition: background 0.3s, color 0.3s; }
 
@@ -87,8 +87,8 @@
         #app-container { display: none; width: 100%; height: 100%; flex-direction: row; overflow: hidden; }
         #sidebar { width: 320px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; height: 100%; z-index: 10; flex-shrink: 0; }
         .profile-header { padding: 15px 20px; padding-top: max(15px, env(safe-area-inset-top)); background: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; min-height: 60px; flex-shrink: 0; }
-        .my-info-wrap { display: flex; align-items: center; gap: 12px; flex: 1; overflow: hidden; }
-        /* AVATAR UPDATED CSS */
+        .my-info-wrap { display: flex; align-items: center; gap: 12px; flex: 1; overflow: hidden; cursor: pointer; }
+        /* AVATAR CSS */
         .avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 600; color: white; flex-shrink: 0; text-transform: uppercase; font-size: 16px; position: relative; background-size: cover; background-position: center; cursor: pointer; }
         .avatar.has-img { color: transparent !important; background-color: transparent !important; }
         [data-theme="hacker"] .avatar { border-radius: 0; border: 1px solid var(--accent-color); background: transparent !important; color: var(--accent-color); }
@@ -96,7 +96,7 @@
         [data-theme="hacker"] .profile-header .avatar::after { content: "$"; position: absolute; bottom: -5px; right: -5px; background: var(--bg-sidebar); color: var(--accent-color); font-size: 14px; font-weight: bold; padding: 0 2px; }
         
         .my-name-container { display: flex; flex-direction: column; min-width: 0; justify-content: center; }
-        .my-name-text { font-weight: 600; font-size: 16px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .my-name-text { font-weight: 600; font-size: 16px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
         .edit-icon { font-size: 12px; color: var(--text-muted); }
         .user-id-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; font-family: monospace; letter-spacing: -0.5px; }
         .header-btn-group { display: flex; align-items: center; gap: 5px; }
@@ -120,7 +120,7 @@
         .user-item.active { background: var(--bg-active); }
         [data-theme="hacker"] .user-item.active { background: #111; border-left-color: var(--accent-color); }
         [data-theme="hacker"] .user-item.active .user-name { color: var(--accent-color); }
-        .user-info-col { flex: 1; margin-left: 12px; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+        .user-info-col { flex: 1; margin-left: 12px; display: flex; flex-direction: column; justify-content: center; min-width: 0; pointer-events: none; }
         .user-name { font-size: 15px; color: var(--text-primary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .status-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--bg-sidebar); position: absolute; bottom: 0; right: 0; }
@@ -128,8 +128,7 @@
         .is-offline { background-color: var(--text-muted); }
         [data-theme="hacker"] .status-dot { display: none; }
         
-        /* Updated Status Text CSS */
-        .status-text { font-size: 10px; margin-left: auto; color: var(--text-muted); display: block; max-width: 80px; text-align: right; }
+        .status-text { font-size: 10px; margin-left: auto; color: var(--text-muted); display: block; max-width: 80px; text-align: right; pointer-events: none; }
         [data-theme="hacker"] .status-text { font-weight: bold; font-family: monospace; }
         .status-text.on { color: var(--success-color); display: block; } 
         [data-theme="hacker"] .status-text.on { display: block; }
@@ -146,13 +145,13 @@
         .chat-header { background: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; flex-shrink: 0; justify-content: space-between; padding: 10px 15px; padding-top: max(10px, env(safe-area-inset-top)); min-height: 60px; z-index: 20; }
         .header-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
         .back-btn { display: none; background: none; border: none; font-size: 22px; color: var(--text-primary); cursor: pointer; padding: 0 5px; }
-        .header-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 600; color: white; font-size: 14px; flex-shrink: 0; position: relative; background-size: cover; background-position: center; }
+        .header-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 600; color: white; font-size: 14px; flex-shrink: 0; position: relative; background-size: cover; background-position: center; cursor: pointer; }
         .header-avatar.has-img { background-color: transparent !important; color: transparent !important; }
         [data-theme="hacker"] .header-avatar { border-radius: 0; border: 1px solid var(--accent-color); background: transparent !important; color: var(--accent-color); }
         [data-theme="hacker"] .header-avatar.has-img { background-color: transparent !important; background-size: cover !important; }
 
         .chat-name-col { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
-        .chat-user-name { font-weight: 600; font-size: 16px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-user-name { font-weight: 600; font-size: 16px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
         .typing-indicator { font-size: 11px; color: var(--accent-color); font-weight: 500; margin-left: 10px; display: none; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
 
@@ -237,6 +236,16 @@
         .btn-save { background: var(--accent-color); color: var(--accent-text); }
         [data-theme="hacker"] .btn-save { color: black; background: var(--accent-color); }
 
+        /* PROFILE MODAL STYLES (NEW) */
+        .profile-img-large { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 15px; background-size: cover; background-position: center; font-size: 30px; display: flex; align-items: center; justify-content: center; color: white; border: 3px solid var(--bg-sidebar); box-shadow: 0 5px 15px rgba(0,0,0,0.1); cursor: zoom-in; }
+        [data-theme="hacker"] .profile-img-large { border: 1px solid var(--accent-color); border-radius: 0; color: var(--accent-color); box-shadow: 0 0 10px rgba(0,255,0,0.2); }
+        .profile-bio-wrap { margin-bottom: 20px; text-align: center; }
+        .profile-bio-label { font-size: 11px; font-weight: 600; color: var(--accent-color); margin-bottom: 4px; text-transform: uppercase; }
+        .profile-bio-text { font-size: 14px; color: var(--text-secondary); white-space: pre-wrap; word-break: break-word; font-style: italic; }
+        .bio-input { font-style: normal; text-align: center; width: 100%; border: 1px solid transparent; background: transparent; color: var(--text-primary); padding: 5px; outline: none; border-radius: 6px; }
+        .bio-input:focus { border-color: var(--accent-color); background: var(--bg-input); }
+        .profile-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+
         @media (max-width: 768px) {
             #sidebar { width: 100%; }
             #chat-area { width: 100%; position: absolute; top:0; left:0; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1); z-index: 50; }
@@ -261,7 +270,6 @@
         <button class="login-theme-switch" onclick="toggleTheme()" title="Switch Theme">
             <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
         </button>
-
         <div id="login-form" class="auth-box">
             <h2>Welcome</h2>
             <div class="auth-sub">Login to continue</div>
@@ -301,12 +309,11 @@
     <div id="app-container">
         <div id="sidebar">
             <div class="profile-header">
-                <div class="my-info-wrap">
-                    <div class="avatar" id="my-avatar" onclick="document.getElementById('profile-upload').click()" title="Change Profile Photo"></div>
+                <div class="my-info-wrap" onclick="showMyProfile()">
+                    <div class="avatar" id="my-avatar"></div>
                     <div class="my-name-container">
-                        <div class="my-name-text" onclick="showChangeNameModal()">
+                        <div class="my-name-text">
                             <span id="my-display-name">...</span> 
-                            <span class="edit-icon">✎</span>
                         </div>
                         <div class="user-id-sub" id="my-unique-id"></div>
                     </div>
@@ -333,7 +340,6 @@
                     <div class="section-label">Contacts</div>
                     <ul id="friend-list" class="list-group"></ul>
                 </div>
-
                 <div class="section-label">Active Users</div>
                 <ul id="user-list" class="list-group"></ul>
             </div>
@@ -348,8 +354,8 @@
                 <div class="chat-header">
                     <div class="header-left">
                         <button class="back-btn" onclick="closeChatUI()">←</button>
-                        <div class="header-avatar" id="header-avatar"></div>
-                        <div class="chat-name-col">
+                        <div class="header-avatar" id="header-avatar" onclick="if(activeChatUser) showUserProfile(activeChatUser)"></div>
+                        <div class="chat-name-col" onclick="if(activeChatUser) showUserProfile(activeChatUser)" style="cursor:pointer">
                             <div class="chat-user-name" id="chat-with-name">User</div>
                             <div class="user-id-sub" id="chat-with-id"></div>
                         </div>
@@ -409,17 +415,28 @@
             </div>
         </div>
     </div>
-    <div id="modal-change-name" class="modal-overlay modal-top">
+
+    <div id="modal-user-profile" class="modal-overlay modal-center">
         <div class="modal-box">
-            <div class="modal-title">Change Name</div>
-            <div class="modal-desc">Update your display name</div>
-            <input type="text" id="new-name-input" class="modal-input" placeholder="New Name">
-            <div class="modal-btns">
-                <button class="btn-modal btn-cancel" onclick="closeModal('modal-change-name')">Cancel</button>
-                <button class="btn-modal btn-save" onclick="saveNewName()">Save</button>
+            <div id="profile-img-large" class="profile-img-large"></div>
+            <div class="modal-title" id="profile-modal-name">Name</div>
+            <div class="user-id-sub" id="profile-modal-id" style="margin-bottom:15px">@id</div>
+            
+            <div class="profile-bio-wrap">
+                <div class="profile-bio-label">Bio</div>
+                <div id="profile-bio-display" class="profile-bio-text">No bio yet.</div>
+                <input id="profile-bio-input" class="bio-input" placeholder="Add a bio..." style="display:none;" onblur="saveBio()">
             </div>
+
+            <div id="my-profile-actions" class="profile-actions" style="display:none;">
+                <button class="btn-modal btn-cancel" onclick="document.getElementById('profile-upload').click()">Photo</button>
+                <button class="btn-modal btn-confirm" onclick="removeAvatar()">Remove</button>
+            </div>
+            
+            <button class="btn-modal btn-save" style="margin-top:15px; width:100%" onclick="closeModal('modal-user-profile')">Close</button>
         </div>
     </div>
+
     <div id="modal-delete-chat" class="modal-overlay modal-center">
         <div class="modal-box">
             <div class="modal-title">Delete History</div>
@@ -454,7 +471,7 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // --- CLOUDINARY CONFIG (REPLACE THIS WITH YOUR CLOUD NAME) ---
+        // --- CLOUDINARY CONFIG ---
         const CLOUD_NAME = "dywshmmy1"; 
         const UPLOAD_PRESET = "privatechat"; 
 
@@ -473,7 +490,8 @@
 
         // --- CORE VARS ---
         const socket = io();
-        let myUsername = "", myDisplayName = "", myAvatarUrl = "", activeChatUser = null; // (UPDATED) Added myAvatarUrl
+        let myUsername = "", myDisplayName = "", myAvatarUrl = "", myBio = ""; // Added myBio
+        let activeChatUser = null;
         let conversations = JSON.parse(localStorage.getItem('chat_history') || '{}');
         let unreadCounts = {};
         let myFriends = [];
@@ -486,7 +504,7 @@
         function escapeHtml(t) { if(!t) return t; return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
         function formatUniqueID(u) { return "pchat@" + u; }
 
-        // --- RENDER AVATAR HELPER (NEW) ---
+        // --- HELPER: RENDER AVATAR ---
         function renderAvatar(el, name, url) {
             el.innerText = getInitials(name);
             el.style.backgroundColor = getAvatarColor(name);
@@ -500,7 +518,7 @@
             }
         }
 
-        // --- LAST SEEN FORMATTER ---
+        // --- HELPER: LAST SEEN ---
         function formatLastSeen(isoDate) {
             if(!isoDate) return "Offline";
             const date = new Date(isoDate);
@@ -584,7 +602,8 @@
             myUsername = data.username;
             myDisplayName = data.displayName;
             myFriends = data.friends || [];
-            myAvatarUrl = data.avatar || ""; // (UPDATED) Store own avatar
+            myAvatarUrl = data.avatar || "";
+            myBio = data.bio || ""; // Store my bio
             
             const savedHistory = localStorage.getItem('chat_history_'+myUsername);
             if(savedHistory) conversations = JSON.parse(savedHistory);
@@ -601,14 +620,12 @@
         function updateMyProfileUI() {
             document.getElementById('my-display-name').innerText = myDisplayName;
             document.getElementById('my-unique-id').innerText = formatUniqueID(myUsername);
-            // (UPDATED) Use render helper
             renderAvatar(document.getElementById('my-avatar'), myDisplayName, myAvatarUrl);
         }
 
         socket.on('update user list', (users) => { onlineUserList = users; renderAllLists(); });
         function renderAllLists() { renderFriends(); renderActiveUsers(); }
 
-        // UPDATED: Now supports Avatar
         function createListItem(u, isOnline, showStatus, lastSeenDate = null) {
             const li = document.createElement('li');
             const isActive = activeChatUser === u.username ? 'active' : '';
@@ -626,10 +643,14 @@
                 displayStatusText = formatLastSeen(lastSeenDate);
             }
 
-            // Create Avatar Div (Using Helper)
             const avatarDiv = document.createElement('div');
             avatarDiv.className = "avatar";
             avatarDiv.innerHTML = statusHtml;
+            // IMPORTANT: Stop propagation on avatar click to show Profile Modal
+            avatarDiv.onclick = (e) => {
+                e.stopPropagation();
+                showUserProfile(u.username);
+            };
             renderAvatar(avatarDiv, u.displayName, u.avatar);
 
             li.innerHTML = `
@@ -641,7 +662,8 @@
                 <span class="status-text ${statusTextClass}">${displayStatusText}</span>
                 <span class="badge">${count}</span>
             `;
-            li.onclick = () => openChat(u.username, u.displayName, u.avatar); // Pass Avatar
+            // List item click opens chat
+            li.onclick = () => openChat(u.username, u.displayName, u.avatar); 
             return li;
         }
 
@@ -659,10 +681,10 @@
                     return 0;
                 });
                 myFriends.forEach(f => {
-                    const isOnline = onlineUserList.some(u => u.username === f.username);
                     const onlineData = onlineUserList.find(u => u.username === f.username);
+                    const isOnline = !!onlineData;
                     const displayName = onlineData ? onlineData.displayName : f.displayName;
-                    const avatar = onlineData ? onlineData.avatar : f.avatar; // Get live avatar if online
+                    const avatar = onlineData ? onlineData.avatar : f.avatar; 
                     list.appendChild(createListItem({ username: f.username, displayName: displayName, avatar: avatar }, isOnline, true, f.lastSeen));
                 });
             } else { section.style.display = 'none'; }
@@ -686,11 +708,76 @@
                         const msgFromThem = msgs.find(m => m.from !== "Me");
                         if(msgFromThem && msgFromThem.fromName) displayName = msgFromThem.fromName;
                     }
-                    // Chat history users don't have live avatar data unless we fetch it, so default to empty
                     list.appendChild(createListItem({ username: chatPartnerId, displayName: displayName, avatar: "" }, false, true));
                 }
             });
         }
+
+        // --- NEW: PROFILE MODAL LOGIC ---
+        function showMyProfile() {
+            const modal = document.getElementById('modal-user-profile');
+            document.getElementById('profile-modal-name').innerText = myDisplayName;
+            document.getElementById('profile-modal-name').onclick = showChangeNameModal; // Allow name edit
+            document.getElementById('profile-modal-id').innerText = formatUniqueID(myUsername);
+            
+            // Render Large Avatar
+            const lgAv = document.getElementById('profile-img-large');
+            renderAvatar(lgAv, myDisplayName, myAvatarUrl);
+            lgAv.onclick = () => { if(myAvatarUrl) openImageViewer(myAvatarUrl); };
+
+            // Bio (Editable)
+            document.getElementById('profile-bio-display').style.display = 'none';
+            const bioInput = document.getElementById('profile-bio-input');
+            bioInput.style.display = 'block';
+            bioInput.value = myBio;
+            
+            // Actions
+            document.getElementById('my-profile-actions').style.display = 'grid';
+            
+            modal.style.display = 'flex';
+        }
+
+        function showUserProfile(username) {
+            // Find user data
+            let user = onlineUserList.find(u => u.username === username);
+            if (!user) user = myFriends.find(f => f.username === username);
+            if (!user && username === activeChatUser) user = { username: activeChatUser, displayName: document.getElementById('chat-with-name').innerText, avatar: "", bio: "Offline / Unknown" };
+            
+            if(!user) return;
+
+            const modal = document.getElementById('modal-user-profile');
+            document.getElementById('profile-modal-name').innerText = user.displayName;
+            document.getElementById('profile-modal-name').onclick = null; // No edit
+            document.getElementById('profile-modal-id').innerText = formatUniqueID(user.username);
+            
+            const lgAv = document.getElementById('profile-img-large');
+            renderAvatar(lgAv, user.displayName, user.avatar);
+            lgAv.onclick = () => { if(user.avatar) openImageViewer(user.avatar); };
+
+            // Bio (Read Only)
+            const bioDisplay = document.getElementById('profile-bio-display');
+            document.getElementById('profile-bio-input').style.display = 'none';
+            bioDisplay.style.display = 'block';
+            bioDisplay.innerText = user.bio || "No bio yet.";
+
+            document.getElementById('my-profile-actions').style.display = 'none';
+            modal.style.display = 'flex';
+        }
+
+        function saveBio() {
+            const val = document.getElementById('profile-bio-input').value.trim();
+            if(val !== myBio) {
+                socket.emit('update_bio', val);
+            }
+        }
+        
+        function removeAvatar() {
+            if(confirm("Remove profile photo?")) {
+                socket.emit('update_avatar', ""); // Send empty string
+            }
+        }
+
+        socket.on('bio_success', (txt) => { myBio = txt; showToast("Bio updated"); });
 
         function searchUser() {
             const input = document.getElementById('user-search-input');
@@ -755,7 +842,6 @@
             document.getElementById('chat-with-id').innerText = formatUniqueID(username);
             document.getElementById('typing-indicator').style.display = 'none';
             
-            // (UPDATED) Avatar in Header
             const headAv = document.getElementById('header-avatar');
             renderAvatar(headAv, displayName, avatarUrl);
 
@@ -822,7 +908,6 @@
             document.getElementById('file-input').value = null;
         }
 
-        // --- NEW: PROFILE UPLOAD FUNCTION ---
         async function uploadProfilePic() {
             const file = document.getElementById('profile-upload').files[0];
             if(!file) return;
@@ -831,7 +916,7 @@
             const fd = new FormData();
             fd.append('file', file);
             fd.append('upload_preset', UPLOAD_PRESET);
-            fd.append('folder', 'profile'); // (NEW) Upload to 'profile' folder
+            fd.append('folder', 'profile');
 
             try {
                 const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
@@ -842,10 +927,13 @@
             } catch(e) { showToast("Error Uploading"); }
         }
         
-        // --- NEW: AVATAR SUCCESS LISTENER ---
         socket.on('avatar_success', (url) => {
             myAvatarUrl = url;
             updateMyProfileUI();
+            // Update modal if open
+            if(document.getElementById('modal-user-profile').style.display === 'flex') {
+                renderAvatar(document.getElementById('profile-img-large'), myDisplayName, url);
+            }
             showToast("Profile Picture Updated!");
         });
 
