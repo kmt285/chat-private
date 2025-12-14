@@ -390,7 +390,7 @@
         </div>
     </div>
 
-    <div id="modal-logout" class="modal-overlay modal-top">
+    <div id="modal-logout" class="modal-overlay modal-center">
         <div class="modal-box">
             <div class="modal-title">Logout</div>
             <div class="modal-desc">Your chat history will be cleared.</div>
@@ -432,7 +432,7 @@
         </div>
     </div>
 
-    <div id="modal-search-result" class="modal-overlay modal-top">
+    <div id="modal-search-result" class="modal-overlay modal-center">
         <div class="modal-box">
             <div class="modal-title">User Found</div>
             <div class="modal-desc" id="search-result-text">...</div>
@@ -673,6 +673,7 @@
             if(!q) return;
             if(q === myUsername) { showToast("That's you!"); return; }
             socket.emit('search_user', q);
+            input.value = "";
         }
         socket.on('search_result', (data) => {
             if(data.found) {
